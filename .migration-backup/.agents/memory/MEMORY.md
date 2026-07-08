@@ -1,0 +1,7 @@
+- [Supabase placeholder URL](supabase-placeholder.md) — both frontend and backend Supabase clients need placeholder URLs or they throw at startup when env vars are absent.
+- [Tailwind v4 dark mode](tailwind-v4-dark.md) — cannot @apply dark in CSS; must add `document.documentElement.classList.add("dark")` in main.tsx instead.
+- [SignalStack concept](signalstack-concept.md) — personal signal service (one owner sells signals), NOT a marketplace for multiple traders.
+- [Admin auth pattern](admin-auth-pattern.md) — admin uses ADMIN_PASSWORD env var + simple base64 token (no Supabase auth); sessionStorage on frontend.
+- [Admin label singular/plural](admin-label-shape.md) — APP_CONFIG.admin uses { singular, plural } objects; use `as const` on string literals when indexing adminModules to satisfy TypeScript.
+- [Supabase schema & API table names](supabase-schema.md) — DB uses products/customers/events/access_links; API routes keep old URL paths; JSON responses keep plan_name field for frontend compat.
+- [Payment model — external URLs only](payment-model.md) — no Stripe/Whop API keys; products have payment_url + button_label; buy button tracks purchase_click then redirects; /api/access returns links with no session verification.

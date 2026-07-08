@@ -1,0 +1,89 @@
+Build a SaaS website for traders who want to sell access to their trading signal Discord or Telegram groups.
+
+Important architecture:
+
+* Replit is only the builder/development environment.
+* Nothing should be stored permanently on Replit.
+* Frontend will be deployed on Vercel.
+* Backend/database/auth should use Supabase.
+* Payments should be prepared for Stripe subscriptions.
+* Signal delivery is NOT inside the app. Traders post signals manually in Discord or Telegram.
+
+Product concept:
+This is a “subscription storefront for trading signal sellers.”
+
+Main user flow:
+
+1. A trader signs up.
+2. Trader creates their own branded signal page.
+3. Trader adds their Discord invite link or Telegram group link.
+4. Trader creates subscription plans.
+5. Customer visits trader’s page.
+6. Customer subscribes via Stripe.
+7. After successful payment, customer is shown the private Discord/Telegram access link.
+8. Trader can view subscribers from their dashboard.
+
+Build the MVP with these pages:
+
+Public pages:
+
+* Home page
+* Pricing/marketing section
+* Example trader storefront page: /trader/demo
+* Risk disclaimer page
+* Terms page
+* Privacy page
+
+Trader dashboard:
+
+* Dashboard overview
+* Edit profile/brand page
+* Manage subscription plans
+* Add Discord/Telegram access links
+* View subscribers
+* Settings page
+
+Customer flow:
+
+* Trader public page
+* Subscribe button
+* Stripe checkout placeholder
+* Success page showing group access link
+* Cancel/failure page
+
+Design style:
+
+* Premium fintech SaaS
+* Dark theme
+* Clean cards
+* Professional trader/business feel
+* Use wording like:
+  “Launch your own trading signal subscription site”
+  “Sell access to your Discord or Telegram group”
+  “Payments, subscriptions, and member access handled for you”
+
+Supabase database tables needed:
+
+* traders
+* trader_profiles
+* subscription_plans
+* subscribers
+* payments
+* access_links
+
+Do not store any data locally in Replit.
+Use environment variables for:
+
+* Supabase URL
+* Supabase anon key
+* Stripe public key
+* Stripe secret key
+* Stripe webhook secret
+
+Use mock Stripe checkout for now if real Stripe keys are not added yet, but structure the code so Stripe can be connected later.
+
+Important:
+Do not build signal posting, charts, trade alerts, or signal delivery inside the site.
+The website only handles the storefront, payment/subscription, and access to Discord/Telegram.
+
+Build it cleanly with reusable components and make it ready for Vercel deployment.

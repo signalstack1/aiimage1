@@ -1,0 +1,9 @@
+node_modules
+.pnpm-store
+artifacts/signal-saas/dist
+artifacts/api-server/dist
+artifacts/mockup-sandbox/dist
+attached_assets
+.git
+.local
+.agents

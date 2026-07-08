@@ -1,0 +1,8 @@
+-- ============================================================================
+-- This file is superseded by the numbered migration.
+-- To apply the schema, run:
+--   supabase/migrations/001_initial_template_schema.sql
+-- in Supabase → SQL Editor on a fresh project.
+--
+-- See SUPABASE_SETUP.md for full step-by-step instructions.
+-- ============================================================================

@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "Zp0jZobfZKOZa-p-n_K-Z"
+uri = "file://artifacts/signal-saas-mobile/assets/images/icon.png"
+type = "image"
+title = "trading signals app icon"

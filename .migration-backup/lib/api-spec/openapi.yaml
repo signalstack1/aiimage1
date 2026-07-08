@@ -1,0 +1,606 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: SignalStack API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: traders
+    description: Public trader storefront data
+  - name: dashboard
+    description: Trader dashboard (authenticated)
+  - name: stripe
+    description: Stripe payment operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /traders:
+    get:
+      operationId: listTraders
+      tags: [traders]
+      summary: List public trader storefronts
+      responses:
+        "200":
+          description: List of traders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TraderPublic"
+
+  /traders/{slug}:
+    get:
+      operationId: getTrader
+      tags: [traders]
+      summary: Get a trader's public storefront
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trader public profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TraderStorefront"
+        "404":
+          description: Trader not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /traders/{slug}/plans:
+    get:
+      operationId: getTraderPlans
+      tags: [traders]
+      summary: Get subscription plans for a trader
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of subscription plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionPlan"
+
+  /dashboard/overview:
+    get:
+      operationId: getDashboardOverview
+      tags: [dashboard]
+      summary: Get dashboard overview stats
+      responses:
+        "200":
+          description: Dashboard overview data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardOverview"
+
+  /dashboard/subscribers:
+    get:
+      operationId: listSubscribers
+      tags: [dashboard]
+      summary: List subscribers for the authenticated trader
+      responses:
+        "200":
+          description: List of subscribers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscriber"
+
+  /dashboard/plans:
+    get:
+      operationId: listPlans
+      tags: [dashboard]
+      summary: List subscription plans for the authenticated trader
+      responses:
+        "200":
+          description: List of plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionPlan"
+    post:
+      operationId: createPlan
+      tags: [dashboard]
+      summary: Create a new subscription plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionPlanInput"
+      responses:
+        "201":
+          description: Plan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlan"
+
+  /dashboard/plans/{id}:
+    patch:
+      operationId: updatePlan
+      tags: [dashboard]
+      summary: Update a subscription plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionPlanUpdate"
+      responses:
+        "200":
+          description: Plan updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlan"
+    delete:
+      operationId: deletePlan
+      tags: [dashboard]
+      summary: Delete a subscription plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Plan deleted
+
+  /dashboard/access-links:
+    get:
+      operationId: listAccessLinks
+      tags: [dashboard]
+      summary: List access links for the authenticated trader
+      responses:
+        "200":
+          description: List of access links
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessLink"
+    post:
+      operationId: upsertAccessLink
+      tags: [dashboard]
+      summary: Create or update an access link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessLinkInput"
+      responses:
+        "200":
+          description: Access link saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessLink"
+
+  /dashboard/profile:
+    get:
+      operationId: getDashboardProfile
+      tags: [dashboard]
+      summary: Get the authenticated trader's profile
+      responses:
+        "200":
+          description: Trader profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TraderProfile"
+    patch:
+      operationId: updateDashboardProfile
+      tags: [dashboard]
+      summary: Update the authenticated trader's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TraderProfileUpdate"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TraderProfile"
+
+  /stripe/checkout:
+    post:
+      operationId: createCheckoutSession
+      tags: [stripe]
+      summary: Create a Stripe checkout session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutSessionInput"
+      responses:
+        "200":
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+
+  /stripe/webhook:
+    post:
+      operationId: handleStripeWebhook
+      tags: [stripe]
+      summary: Handle Stripe webhook events
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResult"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    TraderPublic:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        display_name:
+          type: string
+        tagline:
+          type: ["string", "null"]
+        avatar_url:
+          type: ["string", "null"]
+        subscriber_count:
+          type: integer
+        plan_count:
+          type: integer
+        created_at:
+          type: string
+      required:
+        - id
+        - slug
+        - display_name
+        - subscriber_count
+        - plan_count
+        - created_at
+
+    TraderStorefront:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        display_name:
+          type: string
+        tagline:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        avatar_url:
+          type: ["string", "null"]
+        banner_url:
+          type: ["string", "null"]
+        twitter_handle:
+          type: ["string", "null"]
+        subscriber_count:
+          type: integer
+        plans:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionPlan"
+      required:
+        - id
+        - slug
+        - display_name
+        - subscriber_count
+        - plans
+
+    TraderProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        trader_id:
+          type: string
+        slug:
+          type: string
+        display_name:
+          type: string
+        tagline:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        avatar_url:
+          type: ["string", "null"]
+        banner_url:
+          type: ["string", "null"]
+        twitter_handle:
+          type: ["string", "null"]
+        created_at:
+          type: string
+      required:
+        - id
+        - trader_id
+        - slug
+        - display_name
+        - created_at
+
+    TraderProfileUpdate:
+      type: object
+      properties:
+        display_name:
+          type: string
+        tagline:
+          type: string
+        bio:
+          type: string
+        avatar_url:
+          type: string
+        banner_url:
+          type: string
+        twitter_handle:
+          type: string
+
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          type: string
+        trader_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price_cents:
+          type: integer
+        currency:
+          type: string
+        interval:
+          type: string
+          enum: [monthly, quarterly, yearly, lifetime]
+        is_active:
+          type: boolean
+        stripe_price_id:
+          type: ["string", "null"]
+        created_at:
+          type: string
+      required:
+        - id
+        - trader_id
+        - name
+        - price_cents
+        - currency
+        - interval
+        - is_active
+        - created_at
+
+    SubscriptionPlanInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price_cents:
+          type: integer
+        currency:
+          type: string
+        interval:
+          type: string
+          enum: [monthly, quarterly, yearly, lifetime]
+      required:
+        - name
+        - price_cents
+        - currency
+        - interval
+
+    SubscriptionPlanUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price_cents:
+          type: integer
+        interval:
+          type: string
+          enum: [monthly, quarterly, yearly, lifetime]
+        is_active:
+          type: boolean
+
+    Subscriber:
+      type: object
+      properties:
+        id:
+          type: string
+        trader_id:
+          type: string
+        email:
+          type: string
+        plan_id:
+          type: string
+        plan_name:
+          type: string
+        status:
+          type: string
+          enum: [active, cancelled, expired, past_due]
+        subscribed_at:
+          type: string
+        expires_at:
+          type: ["string", "null"]
+      required:
+        - id
+        - trader_id
+        - email
+        - plan_id
+        - plan_name
+        - status
+        - subscribed_at
+
+    AccessLink:
+      type: object
+      properties:
+        id:
+          type: string
+        trader_id:
+          type: string
+        platform:
+          type: string
+          enum: [discord, telegram]
+        label:
+          type: string
+        invite_url:
+          type: string
+        plan_id:
+          type: ["string", "null"]
+        created_at:
+          type: string
+      required:
+        - id
+        - trader_id
+        - platform
+        - label
+        - invite_url
+        - created_at
+
+    AccessLinkInput:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [discord, telegram]
+        label:
+          type: string
+        invite_url:
+          type: string
+        plan_id:
+          type: string
+      required:
+        - platform
+        - label
+        - invite_url
+
+    DashboardOverview:
+      type: object
+      properties:
+        total_subscribers:
+          type: integer
+        active_subscribers:
+          type: integer
+        monthly_revenue_cents:
+          type: integer
+        total_plans:
+          type: integer
+        recent_subscribers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subscriber"
+      required:
+        - total_subscribers
+        - active_subscribers
+        - monthly_revenue_cents
+        - total_plans
+        - recent_subscribers
+
+    CheckoutSessionInput:
+      type: object
+      properties:
+        plan_id:
+          type: string
+        trader_slug:
+          type: string
+        customer_email:
+          type: string
+      required:
+        - plan_id
+        - trader_slug
+
+    CheckoutSession:
+      type: object
+      properties:
+        session_id:
+          type: string
+        checkout_url:
+          type: string
+        is_mock:
+          type: boolean
+      required:
+        - session_id
+        - checkout_url
+        - is_mock
+
+    WebhookResult:
+      type: object
+      properties:
+        received:
+          type: boolean
+      required:
+        - received

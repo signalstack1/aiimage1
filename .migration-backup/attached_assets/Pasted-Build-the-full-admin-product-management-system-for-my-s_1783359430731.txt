@@ -1,0 +1,169 @@
+Build the full admin product management system for my shop template.
+
+I already have basic product fields: title, images, description, price, and buy button/payment URL.
+
+Now add the following properly with Supabase persistence.
+
+1. Categories
+
+Allow the admin user to create their own product categories.
+
+Each category should be saved in Supabase.
+
+The admin should be able to:
+
+* Create category
+* Edit category
+* Delete category
+* Assign category to a product
+
+Also allow optional sub-categories.
+
+Example:
+
+Category: Clothing
+Sub-category: Tops
+Sub-category: Hoodies
+Sub-category: Joggers
+
+The product upload/edit page should let the admin select a category and, if available, a sub-category.
+
+2. Product dropdown options / variants
+
+Allow the admin to optionally create a dropdown selection for a product.
+
+This should be fully custom and controlled by the admin.
+
+Example:
+
+Dropdown name: Size
+Options: Small, Medium, Large, XL
+
+Another example:
+
+Dropdown name: Colour
+Options: Black, White, Grey
+
+The admin should be able to:
+
+* Add dropdown name
+* Add multiple dropdown options
+* Save options to Supabase
+* Attach the dropdown to a product
+* Edit or remove dropdowns
+* Leave dropdown blank if the product does not need one
+
+On the public product page, if a product has a dropdown attached, show it clearly so the buyer can select an option before clicking the buy button.
+
+3. Tags
+
+Allow the admin to create their own product tags.
+
+Tags should be saved in Supabase.
+
+The admin should be able to:
+
+* Create tag
+* Edit tag
+* Delete tag
+* Assign multiple tags to a product
+
+Example tags:
+
+New
+Best Seller
+Limited Offer
+Digital Product
+Physical Product
+Premium
+
+Tags should be reusable across products.
+
+4. Quantity / stock control
+
+Add stock control to products.
+
+Each product should have a stock quantity field.
+
+The admin should be able to set the available quantity.
+
+Also add a toggle:
+
+Show stock quantity to customers: ON / OFF
+
+If ON, the public product page should show something like:
+
+“Only 5 left in stock”
+
+If OFF, the product page should not show the exact stock number.
+
+Also add stock status logic:
+
+* If stock is greater than 0, product is available
+* If stock is 0, product should show “Out of stock”
+* If out of stock, disable the buy button or clearly prevent purchase
+
+5. Supabase database structure
+
+Create or update the Supabase schema properly for:
+
+* products
+* categories
+* sub_categories
+* product_dropdowns
+* product_dropdown_options
+* tags
+* product_tags
+
+Make sure relationships are correct.
+
+Products should be linked to categories, optional sub-categories, optional dropdowns, tags, and stock settings.
+
+6. Admin UI requirements
+
+Update the admin product upload/edit page so it includes:
+
+* Product title
+* Product images
+* Product description
+* Price
+* Buy button/payment URL
+* Category selector
+* Sub-category selector
+* Create new category option
+* Create new sub-category option
+* Tags selector
+* Create new tag option
+* Optional dropdown/variant builder
+* Stock quantity
+* Toggle to show/hide stock quantity publicly
+* Product status: Draft / Active / Hidden
+
+Make the UI clean, simple, and reusable for any type of shop.
+
+7. Public product page requirements
+
+Update the customer-facing product page so it displays:
+
+* Product title
+* Images
+* Description
+* Price
+* Category/sub-category if useful
+* Tags if useful
+* Dropdown selector if the product has one
+* Stock status
+* Stock quantity only if admin enabled it
+* Buy button/payment URL
+
+The buyer must select a dropdown option before buying if the product requires one.
+
+8. Important
+
+Do not hardcode categories, tags, sizes, colours, or options.
+
+Everything must be created by the admin and saved in Supabase.
+
+This needs to work as a flexible shop template for clothing, digital products, services, courses, downloads, trading products, and any future business type.
+
+Build this fully end-to-end, including database changes, admin UI, Supabase integration, and public product page display.

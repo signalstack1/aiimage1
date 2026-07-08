@@ -1,0 +1,155 @@
+I want this repository to become my master white-label business template for future companies.
+
+The goal is not to make the template minimal. I deliberately want it to contain a broad set of reusable business features so I can clone the GitHub repository for a new business and then remove, disable, rename, or adapt whatever that specific business does not need.
+
+Core principle: build once, reuse many times.
+
+When I create a future business, my workflow should be:
+
+Clone repository → connect fresh Supabase project → describe the new business → disable/remove irrelevant modules → rename generic entities → add niche-specific functionality → rebrand → deploy to Vercel
+
+1. Make major features modular
+
+Create a central module configuration system, ideally alongside the existing APP_CONFIG, with feature flags for major systems such as:
+
+Overview
+Products
+Customers
+Access
+Analytics
+Content
+Messages
+Activity
+Admin Team
+Settings
+
+Example concept:
+
+products: true
+
+customers: true
+
+access: true
+
+analytics: true
+
+content: true
+
+messages: true
+
+activity: true
+
+adminTeam: true
+
+2. Disabled modules must be properly disabled
+
+If a module is set to false:
+
+remove it from admin navigation
+remove related dashboard widgets
+prevent direct route access
+prevent unnecessary frontend queries
+do not break shared components
+do not break authentication
+do not break other modules
+
+Do not automatically delete database tables when a module is disabled. Feature disabling should initially be safe and reversible.
+
+3. Keep the master template feature-rich
+
+Do not strip the repository down to a basic starter.
+
+I want the master template to contain more reusable functionality than an individual business will normally need. Future cloned businesses will be trimmed to match their specific use case.
+
+4. Separate generic core from business-specific features
+
+Treat these as reusable core infrastructure:
+
+authentication
+Supabase client setup
+admin authentication
+roles and permissions
+layout system
+navigation
+reusable UI components
+event tracking
+settings
+branding config
+error handling
+loading states
+Vercel compatibility
+
+Keep business modules separated from this core wherever practical.
+
+5. Make terminology configurable
+
+I do not want future businesses forced to use words like:
+
+Customers
+Products
+Access
+Members
+
+Add configurable entity labels so future clones can rename concepts without large code rewrites.
+
+Example:
+
+Customers → Tenants
+Customers → Clients
+Customers → Traders
+Products → Properties
+Products → Courses
+Products → Services
+Access → Membership
+Access → Licence
+
+Support singular and plural labels where needed.
+
+6. Preserve Supabase architecture
+
+Supabase remains the backend.
+
+Replit is the development/builder environment only.
+
+Vercel remains frontend hosting.
+
+Do not create a separate Express or Node backend.
+
+Preserve:
+
+Supabase Auth
+RLS
+Edge Functions
+existing schema
+existing working integrations
+7. Prepare for future cloning
+
+Add clear documentation explaining:
+
+how to clone the repository
+how to connect a fresh Supabase project
+required environment variables
+how to enable/disable modules
+how to rename entities
+how to change branding
+how to remove an unused module permanently after testing
+how to deploy to Vercel
+8. Important safety rule
+
+Do not rebuild working pages from scratch.
+
+Refactor incrementally.
+
+Preserve current working functionality.
+
+Before making changes, create a checkpoint/commit.
+
+First inspect the full repository and existing white-label work. Then give me a concise implementation plan showing:
+
+files to create
+files to modify
+module architecture
+route protection approach
+how existing functionality will be preserved
+
+Do not start coding until I approve the plan.

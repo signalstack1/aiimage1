@@ -1,0 +1,146 @@
+I want this template upgraded into a Universal Business App Template, but this phase must stay lightweight and achievable in around 1 hour.
+
+Do NOT build deep/complex versions yet. I only want basic reusable foundations so future businesses can be built faster from this template.
+
+Current template already has shop, products, categories, customers, analytics, activity, admin settings, access links, product pages, payment URL checkout, and delivery options. Preserve everything that already works.
+
+Build these BASIC modules/foundations:
+
+1. Business Profile
+Add an admin page/table for:
+- Business name
+- Logo URL
+- Phone number
+- Email
+- WhatsApp link
+- Address
+- Opening hours text
+- Service areas text
+- Facebook/Instagram/TikTok/LinkedIn links
+- Primary CTA label
+- Primary CTA link
+
+This should let future sites change core business details without editing code.
+
+2. Services
+Add a basic Services admin module:
+- Service name
+- Description
+- Image URL
+- Category
+- Starting price text
+- CTA type: Book Now / Request Quote / Call Now / WhatsApp
+- Active toggle
+- Featured toggle
+
+Add a public /services page that lists active services.
+
+3. Quote Requests / Leads
+Add a basic quote request form:
+- Name
+- Email
+- Phone
+- Postcode/location
+- Service needed
+- Message
+- Status: new / contacted / quoted / won / lost
+- Admin notes
+
+Add admin page to view and update leads.
+
+4. Basic Bookings
+Add a simple booking request system, not full calendar logic yet:
+- Customer name
+- Email
+- Phone
+- Selected service
+- Preferred date
+- Preferred time
+- Message
+- Status: requested / confirmed / cancelled / completed
+
+Add public /book page and admin bookings page.
+
+5. Basic Orders
+Add a simple orders table/admin page:
+- Customer name
+- Email
+- Phone
+- Items summary
+- Total amount text
+- Delivery or collection
+- Address
+- Status: new / preparing / ready / completed / cancelled
+- Notes
+
+This is just a manual admin order tracker for takeaway/ecommerce builds. No payment API.
+
+6. Reviews
+Add basic reviews:
+- Customer name
+- Rating 1–5
+- Review text
+- Source
+- Featured toggle
+- Published toggle
+
+Add public reviews section/page and admin reviews page.
+
+7. Gallery / Portfolio
+Add basic gallery:
+- Title
+- Image URL
+- Category
+- Description
+- Featured toggle
+- Published toggle
+
+Add public /gallery page and admin gallery page.
+
+8. Messages
+Finish the existing disabled Messages module in a basic way:
+- Public contact form
+- Admin inbox
+- Status: new / read / archived
+- Admin notes
+
+9. Module Toggles
+Add all new modules to the existing APP_CONFIG adminModules system so each future business can enable/disable:
+- products
+- services
+- bookings
+- leads
+- orders
+- reviews
+- gallery
+- messages
+- access
+- analytics
+- activity
+- settings
+
+10. Business Presets
+Add simple preset configs only. Do not overbuild.
+Create presets:
+- ecommerce
+- takeaway
+- tradesman
+- booking_business
+- digital_products
+- portfolio
+
+Each preset should define which modules are enabled and what the main CTA should say.
+
+Important rules:
+- Keep this basic.
+- Do not add Stripe/payment API/webhooks.
+- Do not add customer login.
+- Do not break existing product/shop/payment-link system.
+- Use Supabase migrations safely.
+- Add basic admin sidebar links for enabled modules.
+- Reuse current UI components and styling.
+- Keep everything simple and reusable.
+- Avoid hardcoding SignalStack-specific wording into new modules.
+
+Goal:
+After this phase, I should be able to clone this template and quickly adapt it into a takeaway site, roofer/electrician/builder site, booking site, product shop, digital product site, or portfolio business.

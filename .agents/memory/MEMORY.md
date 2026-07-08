@@ -1,0 +1,2 @@
+- [Vercel/v0 migration backups that are already pnpm_workspace-shaped](vercel-migration-already-migrated.md) — check `.migration-backup/` structure before assuming a Next.js→Vite conversion is needed.
+- [SignalStack "Master Template" scaffold modules](signalstack-scaffold-modules.md) — services/bookings/gallery/messages public pages are reachable but their api-server routes don't exist; that's intentional, not a bug.

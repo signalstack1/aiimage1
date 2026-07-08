@@ -1,0 +1,105 @@
+Build the full public Shop page for the template.
+
+The Shop page should pull products, categories, sub-categories, tags, dropdown/variant data, stock settings, images, prices, and product status from Supabase.
+
+Requirements:
+
+1. Shop page layout
+
+Create a clean responsive shop page showing all active products.
+
+Each product card should show:
+
+* Product image
+* Product title
+* Short description
+* Price
+* Category
+* Tags if available
+* Stock status
+* “View Product” button
+
+Only show products with status = Active.
+
+Do not show Draft or Hidden products publicly.
+
+2. Category filtering
+
+Add category filters on the Shop page.
+
+The customer should be able to filter by:
+
+* All products
+* Category
+* Sub-category
+* Tags
+
+Categories, sub-categories, and tags must come from Supabase.
+
+Do not hardcode them.
+
+3. Search
+
+Add a search bar so customers can search products by:
+
+* Title
+* Description
+* Category
+* Tags
+
+4. Sorting
+
+Add sorting options:
+
+* Newest first
+* Price low to high
+* Price high to low
+* In stock first
+
+5. Product cards
+
+Each product card should clearly show if the product is:
+
+* In stock
+* Low stock
+* Out of stock
+
+If stock is 0, the product card should show “Out of stock”.
+
+6. Product detail page
+
+When the customer clicks a product, open a full product detail page.
+
+This page should show:
+
+* Full image gallery
+* Title
+* Full description
+* Price
+* Category
+* Sub-category
+* Tags
+* Dropdown selector if the admin added one
+* Stock status
+* Stock quantity only if admin enabled “show stock quantity”
+* Buy button/payment URL
+
+If the product has a dropdown option, the customer must select an option before clicking buy.
+
+If stock is 0, disable the buy button and show “Out of stock”.
+
+7. Responsive design
+
+Make the Shop page and Product Detail page fully responsive for desktop, tablet, and mobile.
+
+8. Important logic
+
+Use Supabase as the source of truth.
+
+Do not hardcode any categories, tags, product data, dropdown options, or stock values.
+
+The Shop page should automatically update whenever the admin creates or edits products in the admin panel.
+
+Build this end-to-end and make sure the full customer flow works:
+
+Shop page → filter/search product → open product detail page → select dropdown option if required → click buy button.

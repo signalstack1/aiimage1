@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "SignalStack"
+version = "1.0.0"
+id = "artifacts/signal-saas"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25595
+
+[services.development]
+run = "pnpm --filter @workspace/signal-saas run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/signal-saas", "run", "build" ]
+publicDir = "artifacts/signal-saas/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25595"
+BASE_PATH = "/"
