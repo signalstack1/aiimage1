@@ -3,7 +3,7 @@ interface TVCLogoProps {
   className?: string;
 }
 
-export function TVCLogo({ size = 32, className = "" }: TVCLogoProps) {
+export function TVCLogo({ size = 40, className = "" }: TVCLogoProps) {
   return (
     <svg
       width={size}
@@ -18,20 +18,20 @@ export function TVCLogo({ size = 32, className = "" }: TVCLogoProps) {
       <rect width="120" height="120" rx="12" fill="#0d1b2e" />
 
       {/*
-        T — bold letter drawn as paths
-        crossbar: x=14–56, y=40–58  (height=18, width=42)
-        stem:     x=28–44, y=58–88  (width=16, height=30)
+        T — left side, narrower to leave room in the middle
+        crossbar: x=6–40, y=40–58  (width=34, height=18)
+        stem:     x=17–29, y=58–88 (width=12)
       */}
-      <path d="M 14,40 H 56 V 58 H 44 V 88 H 28 V 58 H 14 Z" fill="white" />
+      <path d="M 6,40 H 40 V 58 H 29 V 88 H 17 V 58 H 6 Z" fill="white" />
 
       {/*
-        Green checkmark — replaces V, dominant center element
-        left arm:  (50,66) short diagonal going down-right to elbow
-        elbow:     (72,90) at baseline
-        right arm: steep up-right to (82,22), well above T cap height
+        Green checkmark — fills the wide center gap
+        left arm:  (36,65) → elbow (57,90)   short angled stroke
+        right arm: (57,90) → (88,22)         steep, extends above T
+        strokeWidth=16 for bold proportions
       */}
       <polyline
-        points="50,66 72,90 82,22"
+        points="36,65 57,90 88,22"
         stroke="#22c55e"
         strokeWidth="16"
         strokeLinecap="butt"
@@ -40,19 +40,13 @@ export function TVCLogo({ size = 32, className = "" }: TVCLogoProps) {
       />
 
       {/*
-        C — bold ring arc, opening on the right
-        center=(90,64), outer-r=24, inner-r=14, gap ±65° from horizontal right
-
-        Outer gap corners:  upper=(100,42)  lower=(100,86)
-        Inner gap corners:  upper=(96,51)   lower=(96,77)
-
-        SVG arc notes:
-          sweep=1 (clockwise on screen) traces the correct left-side arc
-          for outer boundary starting from lower gap going to upper gap.
-          sweep=0 (counterclockwise) traces back on the inner boundary.
+        C — right side, centre=(97,64), outer-r=21, inner-r=13
+        gap ±65° from horizontal right
+        outer gap:  upper=(106,45)  lower=(106,83)
+        inner gap:  upper=(103,52)  lower=(103,76)
       */}
       <path
-        d="M 100,86 A 24,24 0 1 1 100,42 L 96,51 A 14,14 0 1 0 96,77 Z"
+        d="M 106,83 A 21,21 0 1 1 106,45 L 103,52 A 13,13 0 1 0 103,76 Z"
         fill="white"
       />
     </svg>
