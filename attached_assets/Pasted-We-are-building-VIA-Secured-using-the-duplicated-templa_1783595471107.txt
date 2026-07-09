@@ -1,0 +1,240 @@
+We are building VIA Secured using the duplicated template.
+
+VIA Secured is a tradesperson verification SaaS platform for UK tradespeople.
+
+IMPORTANT:
+Do NOT use Stripe.
+Do NOT build Stripe checkout, Stripe webhooks, Stripe products, or subscription API logic.
+
+Use the existing payment-link system already built into the template.
+
+Admin must be able to manually add external payment links for:
+1. VIA Membership - £20/month
+2. Priority Checking - £49 one-off
+
+Payment links may come from Whop, Stripe Payment Links, PayPal, Lemon Squeezy, or any other provider. The app should simply redirect users to the saved payment URL.
+
+If no payment link is configured, show:
+“Payment link not configured yet.”
+
+Core concept:
+Tradespeople apply to become VIA checked. Admin verifies their business details, insurance, accreditations, address, digital footprint, public records and contact details. Once approved, the business receives a unique VIA number, public profile, digital badge, and member dashboard.
+
+Brand:
+Use the existing VIA branding style:
+- Dark navy background
+- Green verification accents
+- White clean typography
+- Trust/security focused UI
+- Professional, serious, credible
+- Mobile-first design
+
+Main public pages required:
+
+1. Homepage
+- Hero headline:
+  “Don’t take their word for it…”
+- Subtext explaining VIA independently checks tradespeople
+- VIA number search bar
+- Trust stats section
+- “How it works” section:
+  1. Spot the Badge
+  2. Search Company
+  3. Checked or Not
+- “What we check” section:
+  - Local address
+  - Business type
+  - Public liability insurance
+  - Trade accreditations
+  - Digital footprint
+  - Contact and public records
+- CTA buttons:
+  “Join VIA”
+  “Check a VIA Number”
+
+2. Join page
+- Explain the offer to tradespeople
+- £20/month verified membership
+- Optional £49 priority checking add-on
+- Benefits:
+  - VIA number
+  - VIA profile
+  - VIA van stickers
+  - VIA digital badge
+  - Competitive edge
+- Application form
+- Payment button using the admin-configured payment link
+
+3. Public verification search
+- User enters VIA number
+- If found, show public profile
+- If not found, show:
+  “No verified member found”
+
+4. Public member profile
+Show:
+- VIA number
+- Business name
+- Trade type
+- Location
+- Verification status
+- Insurance verified yes/no
+- Accreditations verified yes/no
+- Address/locality confirmed yes/no
+- Digital footprint checked yes/no
+- Public records reviewed yes/no
+- Last checked date
+- Contact buttons if enabled
+
+Member dashboard:
+After sign up/login, tradesperson can:
+- View VIA number
+- Edit business profile
+- Upload documents
+- Upload insurance proof
+- Upload accreditation proof
+- View verification status:
+  Pending / In Review / Approved / Rejected / Expired
+- Manage subscription/payment link access
+- View referral code
+- View badge assets
+- View notifications
+
+Admin dashboard:
+Admin can:
+- View all applications
+- Approve/reject members
+- Edit verification checklist
+- Assign VIA numbers
+- View uploaded documents
+- Manage members
+- Change verification status
+- Send internal notes
+- View payment link settings
+- View revenue/manual payment status if already supported
+- View leads pipeline
+
+Lead pipeline:
+Create admin lead management with stages:
+- New
+- Contacted
+- Replied
+- Interested
+- Converted
+- Dead
+
+Each lead should include:
+- Business name
+- Trade
+- Town/city
+- Website
+- Email
+- Phone
+- Notes
+- Stage
+- Last contacted date
+
+Disable/hide unnecessary template features:
+Do not delete existing code.
+Do not remove database tables.
+Do not break existing components.
+
+Instead:
+- Hide unused pages from navigation
+- Disable unused routes
+- Add feature flags where needed
+- Clearly comment what has been disabled
+- Keep code available for future reactivation
+
+Disable/hide anything not needed for VIA Secured MVP, including:
+- Generic product shop pages
+- Delivery option UI
+- Gallery pages if not needed
+- Booking system if present
+- Generic order system if present
+- Service marketplace sections if present
+- Any unrelated business template content
+- Any placeholder pages not related to VIA Secured
+- Any payment API/webhook logic if it exists
+
+Keep only what supports VIA Secured:
+Public:
+- Homepage
+- Join/apply page
+- VIA number search
+- Public verified profile
+- Contact page
+- Guides/info page if already available
+
+Member:
+- Member dashboard
+- Business profile management
+- Document upload
+- Insurance upload
+- Accreditation upload
+- Verification status
+- VIA number display
+- Badge/download area
+- Referral code area if already easy to keep
+
+Admin:
+- Application management
+- Member management
+- Verification checklist
+- Document review
+- VIA number assignment
+- Lead pipeline
+- Payment link management
+- Admin notes
+- Notifications/messages if already available
+
+Database:
+Use Supabase as the source of truth.
+
+Create/adapt tables for:
+- profiles
+- businesses
+- applications
+- verification_checks
+- documents
+- payment_links
+- referrals
+- leads
+- admin_notes
+- notifications
+
+Do NOT create Stripe-specific subscription tables unless they already exist in the template. If subscription tables already exist, keep them but disable/hide Stripe-specific logic.
+
+RLS:
+- Members can only see their own data
+- Admins can see all data
+- Public users can only see approved public profiles
+
+VIA number logic:
+Generate unique VIA numbers like:
+VIA1001, VIA1002, VIA1003
+
+Only approved members should be publicly searchable.
+
+MVP priority order:
+1. Hide/disable irrelevant template features safely
+2. Set VIA branding and copy
+3. Build public homepage
+4. Build join/apply flow
+5. Connect admin-managed payment links
+6. Build member dashboard
+7. Build admin verification dashboard
+8. Build VIA number search
+9. Build public verified profile
+10. Test full flow end-to-end
+
+Do not overbuild yet.
+
+After MVP is stable, we can add:
+- Gmail inbox
+- AI reply bot
+- Google Business scraping
+- iOS app
+- automated outreach system
+- referral credit automation
+- badge download system
