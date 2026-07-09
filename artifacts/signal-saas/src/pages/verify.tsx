@@ -3,6 +3,7 @@ import { Link, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import TVCLogo from "@/components/TVCLogo";
 import {
   ShieldCheck, Search, CheckCircle2, XCircle, Clock,
   MapPin, Building2, Award, Globe, FileSearch, Phone,
