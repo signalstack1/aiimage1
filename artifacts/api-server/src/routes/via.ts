@@ -198,19 +198,22 @@ router.post("/admin/payment-links", requireAdmin, async (req, res) => {
   return ok(res, data, 201);
 });
 
-// PATCH /api/admin/payment-links/:id
-router.patch("/admin/payment-links/:id", requireAdmin, async (req, res) => {
+// PATCH /api/admin/payment-links/:id  (partial update)
+// PUT   /api/admin/payment-links/:id  (full replacement — same implementation)
+async function updatePaymentLink(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  if (!isSupabaseConfigured()) return ok(res, { id, ...req.body });
+  if (!isSupabaseConfigured()) { ok(res, { id, ...req.body }); return; }
   const { data, error } = await supabase
     .from("payment_links")
     .update({ ...req.body, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select()
     .single();
-  if (error) return err(res, error.message);
-  return ok(res, data);
-});
+  if (error) { err(res, error.message); return; }
+  ok(res, data);
+}
+router.patch("/admin/payment-links/:id", requireAdmin, updatePaymentLink);
+router.put("/admin/payment-links/:id",   requireAdmin, updatePaymentLink);
 
 // DELETE /api/admin/payment-links/:id
 router.delete("/admin/payment-links/:id", requireAdmin, async (req, res) => {

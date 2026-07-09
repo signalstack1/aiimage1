@@ -164,12 +164,16 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- ── VIA number sequence helper ────────────────────────────────────────────────
--- Use this function to generate the next VIA number safely.
+-- Generates the next unique VIA number (e.g. VIA1042).
+-- Uses an advisory lock so concurrent approvals cannot race and produce duplicates.
 CREATE OR REPLACE FUNCTION next_via_number()
 RETURNS TEXT AS $$
 DECLARE
   next_num INT;
 BEGIN
+  -- Serialise concurrent calls with a session-level advisory lock (key = 'via_number_seq' hash)
+  PERFORM pg_advisory_xact_lock(hashtext('via_number_seq'));
+
   SELECT COALESCE(MAX(CAST(REPLACE(via_number, 'VIA', '') AS INT)), 1000) + 1
   INTO next_num
   FROM businesses
@@ -178,6 +182,30 @@ BEGIN
   RETURN 'VIA' || next_num::TEXT;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ── Auto-assign VIA number on application approval ────────────────────────────
+-- Fires after an application row transitions to status = 'approved'.
+-- If the linked business has no via_number yet, assigns the next one atomically.
+CREATE OR REPLACE FUNCTION assign_via_number_on_approval()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Only act when status changes TO 'approved'
+  IF NEW.status = 'approved' AND (OLD.status IS DISTINCT FROM 'approved') THEN
+    -- Only assign if the business doesn't already have a VIA number
+    UPDATE businesses
+    SET    via_number = next_via_number(),
+           updated_at = NOW()
+    WHERE  id = NEW.business_id
+      AND  via_number IS NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_assign_via_number ON applications;
+CREATE TRIGGER trg_assign_via_number
+  AFTER UPDATE OF status ON applications
+  FOR EACH ROW EXECUTE FUNCTION assign_via_number_on_approval();
 
 -- ── Updated_at triggers ───────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION set_updated_at()
