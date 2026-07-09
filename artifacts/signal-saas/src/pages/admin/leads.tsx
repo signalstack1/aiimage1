@@ -1,27 +1,26 @@
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ChevronUp, Trash2, ClipboardList, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, ClipboardList, Plus, X, Globe, MapPin, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 
-// VIA pipeline stages
 const STAGES = ["new", "contacted", "replied", "interested", "converted", "dead"] as const;
+type Stage = typeof STAGES[number];
 
 const STAGE_LABELS: Record<string, string> = {
-  new:       "New",
-  contacted: "Contacted",
-  replied:   "Replied",
-  interested:"Interested",
-  converted: "Converted",
-  dead:      "Dead",
+  new:        "New",
+  contacted:  "Contacted",
+  replied:    "Replied",
+  interested: "Interested",
+  converted:  "Converted",
+  dead:       "Dead",
 };
 
 const STAGE_COLORS: Record<string, string> = {
@@ -36,39 +35,68 @@ const STAGE_COLORS: Record<string, string> = {
 interface Lead {
   id: string;
   name: string;
+  business_name: string;
   email: string;
   phone: string;
+  trade: string;
+  town: string;
+  website: string;
   location: string;
   service_needed: string;
   message: string;
-  status: string;
-  admin_notes: string;
+  stage: Stage;
+  last_contacted_at: string | null;
   created_at: string;
-}
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const h = Math.floor(diff / 3600000);
-  if (h < 1) return "just now";
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  updated_at: string;
 }
 
 interface AddLeadForm {
-  name: string; email: string; phone: string;
-  location: string; service_needed: string; message: string;
+  name: string;
+  business_name: string;
+  email: string;
+  phone: string;
+  trade: string;
+  town: string;
+  website: string;
+  message: string;
+}
+
+const EMPTY_FORM: AddLeadForm = {
+  name: "", business_name: "", email: "", phone: "",
+  trade: "", town: "", website: "", message: "",
+};
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return d < 30 ? `${d}d ago` : new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function fmtDate(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function getStage(l: Lead): Stage {
+  return (l.stage ?? (l as any).status ?? "new") as Stage;
 }
 
 export default function AdminLeadsPage() {
   const { toast } = useToast();
-  const [leads, setLeads]         = useState<Lead[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [expanded, setExpanded]   = useState<string | null>(null);
+  const [leads, setLeads]           = useState<Lead[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [expanded, setExpanded]     = useState<string | null>(null);
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
+  const [lcDraft, setLcDraft]       = useState<Record<string, string>>({});
   const [stageFilter, setStageFilter] = useState<string>("all");
-  const [showAdd, setShowAdd]     = useState(false);
-  const [addForm, setAddForm]     = useState<AddLeadForm>({ name: "", email: "", phone: "", location: "", service_needed: "", message: "" });
-  const [addSaving, setAddSaving] = useState(false);
+  const [showAdd, setShowAdd]       = useState(false);
+  const [addForm, setAddForm]       = useState<AddLeadForm>(EMPTY_FORM);
+  const [addSaving, setAddSaving]   = useState(false);
 
   const token = sessionStorage.getItem("admin_token") || "";
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
@@ -90,9 +118,18 @@ export default function AdminLeadsPage() {
   };
 
   const saveNotes = (lead: Lead) => {
-    const notes = notesDraft[lead.id] ?? lead.admin_notes ?? "";
-    updateLead(lead.id, { admin_notes: notes });
+    const draft = notesDraft[lead.id];
+    if (draft === undefined) return;
+    updateLead(lead.id, { message: draft });
     toast({ title: "Notes saved" });
+  };
+
+  const saveLastContacted = (lead: Lead) => {
+    const v = lcDraft[lead.id];
+    if (!v) return;
+    const iso = new Date(v).toISOString();
+    updateLead(lead.id, { last_contacted_at: iso });
+    toast({ title: "Last contacted date saved" });
   };
 
   const handleDelete = async (id: string) => {
@@ -103,34 +140,33 @@ export default function AdminLeadsPage() {
   };
 
   const handleAddLead = async () => {
-    if (!addForm.name.trim() && !addForm.email.trim()) {
-      toast({ title: "Name or email required", variant: "destructive" }); return;
+    if (!addForm.name.trim() && !addForm.email.trim() && !addForm.business_name.trim()) {
+      toast({ title: "Name, business name, or email required", variant: "destructive" }); return;
     }
     setAddSaving(true);
     try {
       const res = await fetch(`${BASE_URL}/api/admin/leads`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ ...addForm, status: "new" }),
+        body: JSON.stringify({ ...addForm, stage: "new" }),
       });
-      const newLead = await res.json();
+      const data = await res.json();
       if (res.ok) {
-        setLeads((prev) => [newLead, ...prev]);
-        setAddForm({ name: "", email: "", phone: "", location: "", service_needed: "", message: "" });
+        setLeads((prev) => [data, ...prev]);
+        setAddForm(EMPTY_FORM);
         setShowAdd(false);
         toast({ title: "Lead added" });
       } else {
-        throw new Error(newLead.error || "Failed");
+        throw new Error(data.error || "Failed to add lead");
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally { setAddSaving(false); }
   };
 
-  const stages = STAGES;
-  const filtered = stageFilter === "all" ? leads : leads.filter((l) => l.status === stageFilter);
+  const filtered = stageFilter === "all" ? leads : leads.filter((l) => getStage(l) === stageFilter);
   const counts: Record<string, number> = { all: leads.length };
-  leads.forEach((l) => { counts[l.status] = (counts[l.status] ?? 0) + 1; });
+  leads.forEach((l) => { const s = getStage(l); counts[s] = (counts[s] ?? 0) + 1; });
 
   return (
     <AdminLayout>
@@ -154,16 +190,18 @@ export default function AdminLeadsPage() {
         {showAdd && (
           <div className="bg-card border border-border rounded-xl p-6 mb-6 space-y-4">
             <h2 className="font-semibold text-sm">Add new lead</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {(["name","email","phone","location","service_needed"] as const).map((field) => (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(["name", "business_name", "email", "phone", "trade", "town", "website"] as const).map((field) => (
                 <div key={field} className="space-y-1">
-                  <Label htmlFor={`add-${field}`} className="text-xs capitalize">{field.replace("_", " ")}</Label>
+                  <Label htmlFor={`add-${field}`} className="text-xs capitalize">
+                    {field === "business_name" ? "Business Name" : field.charAt(0).toUpperCase() + field.slice(1)}
+                  </Label>
                   <Input
                     id={`add-${field}`}
                     value={addForm[field]}
                     onChange={(e) => setAddForm((p) => ({ ...p, [field]: e.target.value }))}
                     className="text-sm"
-                    placeholder={field.replace("_", " ")}
+                    placeholder={field === "website" ? "https://…" : field.replace("_", " ")}
                   />
                 </div>
               ))}
@@ -196,7 +234,7 @@ export default function AdminLeadsPage() {
           >
             All {counts.all > 0 && <span className="ml-1 text-xs opacity-70">({counts.all})</span>}
           </button>
-          {stages.map((s) => (
+          {STAGES.map((s) => (
             <button
               key={s}
               onClick={() => setStageFilter(s)}
@@ -219,63 +257,105 @@ export default function AdminLeadsPage() {
         ) : (
           <div className="space-y-2">
             {filtered.map((lead) => {
-              const open = expanded === lead.id;
-              const stageCls = STAGE_COLORS[lead.status] ?? "bg-muted text-muted-foreground";
+              const open  = expanded === lead.id;
+              const stage = getStage(lead);
+              const stageCls = STAGE_COLORS[stage] ?? "bg-muted text-muted-foreground";
+              const displayName = lead.business_name || lead.name || lead.email || "Unknown";
               return (
                 <div key={lead.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                  {/* Row */}
                   <div
                     className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-muted/10"
                     onClick={() => setExpanded(open ? null : lead.id)}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-sm">{lead.name || lead.email || "Unknown"}</p>
-                        {lead.service_needed && <span className="text-xs text-muted-foreground">· {lead.service_needed}</span>}
-                        {lead.location && <span className="text-xs text-muted-foreground">· {lead.location}</span>}
+                        <p className="font-medium text-sm">{displayName}</p>
+                        {lead.trade && <span className="text-xs text-muted-foreground">· {lead.trade}</span>}
+                        {(lead.town || lead.location) && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                            <MapPin className="w-3 h-3" />{lead.town || lead.location}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{lead.email} {lead.phone ? `· ${lead.phone}` : ""}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {lead.email}{lead.phone ? ` · ${lead.phone}` : ""}
+                        {lead.last_contacted_at && (
+                          <span className="ml-2 text-muted-foreground/60">Last contacted {fmtDate(lead.last_contacted_at)}</span>
+                        )}
+                      </p>
                     </div>
                     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${stageCls}`}>
-                      {STAGE_LABELS[lead.status] ?? lead.status}
+                      {STAGE_LABELS[stage] ?? stage}
                     </span>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(lead.created_at)}</span>
                     {open ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
                   </div>
 
+                  {/* Expanded detail */}
                   {open && (
                     <div className="border-t border-border px-5 py-4 space-y-4">
+                      {/* Field grid */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                        {lead.email     && <div><span className="text-muted-foreground block mb-0.5">Email</span><p className="font-medium break-all">{lead.email}</p></div>}
-                        {lead.phone     && <div><span className="text-muted-foreground block mb-0.5">Phone</span><p className="font-medium">{lead.phone}</p></div>}
-                        {lead.location  && <div><span className="text-muted-foreground block mb-0.5">Location</span><p className="font-medium">{lead.location}</p></div>}
-                        {lead.service_needed && <div><span className="text-muted-foreground block mb-0.5">Trade</span><p className="font-medium">{lead.service_needed}</p></div>}
+                        {lead.email         && <div><span className="text-muted-foreground block mb-0.5">Email</span><p className="font-medium break-all">{lead.email}</p></div>}
+                        {lead.phone         && <div><span className="text-muted-foreground block mb-0.5">Phone</span><p className="font-medium">{lead.phone}</p></div>}
+                        {(lead.town || lead.location) && <div><span className="text-muted-foreground block mb-0.5">Town</span><p className="font-medium">{lead.town || lead.location}</p></div>}
+                        {(lead.trade || lead.service_needed) && <div><span className="text-muted-foreground block mb-0.5">Trade</span><p className="font-medium">{lead.trade || lead.service_needed}</p></div>}
+                        {lead.website       && (
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground block mb-0.5">Website</span>
+                            <a href={lead.website} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline flex items-center gap-1">
+                              <Globe className="w-3 h-3" />{lead.website.replace(/^https?:\/\//, "")}
+                            </a>
+                          </div>
+                        )}
                       </div>
+
                       {lead.message && (
                         <div className="bg-muted/30 rounded-lg p-3 text-sm text-muted-foreground">{lead.message}</div>
                       )}
+
                       <div className="flex items-start gap-4 flex-wrap">
+                        {/* Stage dropdown */}
                         <div className="space-y-1.5">
                           <p className="text-xs text-muted-foreground">Stage</p>
-                          <Select value={lead.status} onValueChange={(v) => updateLead(lead.id, { status: v })}>
+                          <Select value={stage} onValueChange={(v) => updateLead(lead.id, { stage: v as Stage })}>
                             <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {stages.map((s) => <SelectItem key={s} value={s} className="text-xs">{STAGE_LABELS[s]}</SelectItem>)}
+                              {STAGES.map((s) => <SelectItem key={s} value={s} className="text-xs">{STAGE_LABELS[s]}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
+
+                        {/* Last contacted */}
+                        <div className="space-y-1.5">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" />Last contacted</p>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="date"
+                              className="h-8 text-xs w-36"
+                              value={lcDraft[lead.id] ?? (lead.last_contacted_at ? lead.last_contacted_at.slice(0, 10) : "")}
+                              onChange={(e) => setLcDraft((p) => ({ ...p, [lead.id]: e.target.value }))}
+                            />
+                            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => saveLastContacted(lead)}>Save</Button>
+                          </div>
+                        </div>
+
+                        {/* Notes */}
                         <div className="flex-1 min-w-48 space-y-1.5">
                           <p className="text-xs text-muted-foreground">Notes</p>
                           <div className="flex gap-2">
                             <Textarea
                               rows={2}
                               className="text-xs"
-                              value={notesDraft[lead.id] ?? lead.admin_notes ?? ""}
+                              value={notesDraft[lead.id] ?? lead.message ?? ""}
                               onChange={(e) => setNotesDraft((p) => ({ ...p, [lead.id]: e.target.value }))}
                               placeholder="Add notes…"
                             />
                             <Button size="sm" variant="outline" className="self-end h-8 text-xs" onClick={() => saveNotes(lead)}>Save</Button>
                           </div>
                         </div>
+
                         <Button size="icon" variant="ghost" className="w-7 h-7 text-destructive hover:text-destructive self-end" onClick={() => handleDelete(lead.id)}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>

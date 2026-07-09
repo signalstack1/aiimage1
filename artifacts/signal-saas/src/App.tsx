@@ -38,6 +38,7 @@ import AdminApplicationsPage from "@/pages/admin/applications";
 import AdminApplicationDetailPage from "@/pages/admin/application-detail";
 import AdminMembersPage from "@/pages/admin/members";
 import AdminPaymentLinksPage from "@/pages/admin/payment-links";
+import AdminNotificationsPage from "@/pages/admin/admin-notifications";
 import { AdminRoute, ModuleRoute } from "@/components/AdminRoute";
 
 // VIA: disabled admin pages — imports preserved for future reactivation
@@ -138,6 +139,9 @@ function Router() {
       </Route>
       <Route path="/admin/payment-links">
         {() => <ModuleRoute module="payment_links"><AdminPaymentLinksPage /></ModuleRoute>}
+      </Route>
+      <Route path="/admin/notifications">
+        {() => <AdminRoute><AdminNotificationsPage /></AdminRoute>}
       </Route>
 
       {/* ── Admin — VIA: disabled routes (preserved, not in nav) ─ */}

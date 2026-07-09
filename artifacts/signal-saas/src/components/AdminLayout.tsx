@@ -1,12 +1,15 @@
 import { Link, useLocation } from "wouter";
 import {
-  LayoutDashboard, Package, Users, Key,
-  BarChart3, Activity, FileText, MessageSquare,
-  Shield, Settings, LogOut, ShieldCheck, ChevronRight, Tag,
-  Wrench, CalendarCheck, ClipboardList, ShoppingBag,
-  Star, Image, Building2,
+  LayoutDashboard, Users, Key,
+  BarChart3, Activity, Bell,
+  Shield, Settings, LogOut, ShieldCheck, ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 import { APP_CONFIG } from "@/config/app";
+import { useEffect, useState } from "react";
+
+const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const LAST_SEEN_KEY = "via_admin_notif_last_seen";
 
 interface NavItem {
   key: string;
@@ -21,40 +24,39 @@ interface NavGroup {
 }
 
 function buildNav(): NavGroup[] {
-  const cfg = APP_CONFIG.admin;
   return [
     {
       items: [
-        { key: "overview",         href: "/admin",                  label: "Overview",             icon: LayoutDashboard },
-        { key: "business_profile", href: "/admin/business-profile", label: "Business Profile",     icon: Building2 },
+        { key: "overview",         href: "/admin",                  label: "Overview",         icon: LayoutDashboard },
+        { key: "business_profile", href: "/admin/business-profile", label: "Business Profile", icon: Shield },
       ],
     },
     {
-      // VIA: Applications & Members — enabled in Task 3 (admin dashboard)
       label: "VIA Members",
       items: [
-        { key: "applications",  href: "/admin/applications",    label: "Applications",         icon: ClipboardList },
-        { key: "members",       href: "/admin/members",         label: "Members",              icon: Users },
-        { key: "payment_links", href: "/admin/payment-links",   label: "Payment Links",        icon: Key },
+        { key: "applications",  href: "/admin/applications",    label: "Applications",   icon: ClipboardList },
+        { key: "members",       href: "/admin/members",         label: "Members",        icon: Users },
+        { key: "payment_links", href: "/admin/payment-links",   label: "Payment Links",  icon: Key },
       ],
     },
     {
       label: "Pipeline",
       items: [
-        { key: "leads",       href: "/admin/leads",            label: cfg.leads.plural,       icon: ClipboardList },
+        { key: "leads",         href: "/admin/leads",           label: "Leads",          icon: ClipboardList },
       ],
     },
     {
       label: "Insights",
       items: [
-        { key: "activity",    href: "/admin/activity",         label: "Activity",             icon: Activity },
-        { key: "analytics",   href: "/admin/analytics",        label: "Analytics",            icon: BarChart3 },
+        { key: "activity",      href: "/admin/activity",        label: "Activity",       icon: Activity },
+        { key: "analytics",     href: "/admin/analytics",       label: "Analytics",      icon: BarChart3 },
       ],
     },
     {
       label: "Admin",
       items: [
-        { key: "settings",    href: "/admin/settings",         label: "Settings",             icon: Settings },
+        { key: "notifications", href: "/admin/notifications",   label: "Notifications",  icon: Bell },
+        { key: "settings",      href: "/admin/settings",        label: "Settings",       icon: Settings },
       ],
     },
     // ── VIA: disabled template nav groups (preserved for future reactivation) ──
@@ -68,6 +70,7 @@ function buildNav(): NavGroup[] {
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const modules = APP_CONFIG.adminModules;
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isActive = (href: string) =>
     href === "/admin" ? location === "/admin" : location.startsWith(href);
@@ -77,12 +80,32 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     window.location.href = "/admin/login";
   };
 
+  // Fetch unread notification count
+  useEffect(() => {
+    const token = sessionStorage.getItem("admin_token") || "";
+    if (!token) return;
+    const lastSeen = Number(localStorage.getItem(LAST_SEEN_KEY) || "0");
+    fetch(`${BASE_URL}/api/admin/via-notifications`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!Array.isArray(d)) return;
+        const unread = d.filter(
+          (n: any) => !n.is_read && new Date(n.created_at).getTime() > lastSeen
+        ).length;
+        setUnreadCount(unread);
+      })
+      .catch(() => {});
+  }, [location]);
+
   const groups = buildNav()
     .map((g) => ({
       ...g,
       items: g.items.filter((item) => {
         if (item.key === "overview") return true;
         if (item.key === "business_profile") return true;
+        if (item.key === "notifications") return true;
         return modules[item.key] !== false;
       }),
     }))
@@ -122,6 +145,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     >
                       <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? "text-primary" : ""}`} />
                       <span className="flex-1">{label}</span>
+                      {key === "notifications" && unreadCount > 0 && !active && (
+                        <span className="text-[10px] font-bold bg-primary text-primary-foreground rounded-full w-4 h-4 flex items-center justify-center shrink-0">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
                       {active && <ChevronRight className="w-3 h-3 opacity-50" />}
                     </Link>
                   );

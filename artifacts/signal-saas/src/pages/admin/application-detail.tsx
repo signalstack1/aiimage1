@@ -105,10 +105,11 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
   const [postingNote, setPostingNote] = useState(false);
   const [statusVal, setStatusVal]     = useState("");
   const [statusSaving, setStatusSaving] = useState(false);
-  const [viaInput, setViaInput]       = useState("");
+  const [viaInput, setViaInput]         = useState("");
   const [viaAssigning, setViaAssigning] = useState(false);
-  const [viaError, setViaError]       = useState<string|null>(null);
-  const [viaSuccess, setViaSuccess]   = useState(false);
+  const [viaAutoLoading, setViaAutoLoading] = useState(false);
+  const [viaError, setViaError]         = useState<string|null>(null);
+  const [viaSuccess, setViaSuccess]     = useState(false);
   const token = sessionStorage.getItem("admin_token") || "";
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -167,6 +168,16 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
     } catch (e: any) {
       setViaError(e.message);
     } finally { setViaAssigning(false); }
+  };
+
+  const autoGenerateVia = async () => {
+    setViaAutoLoading(true);
+    setViaError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/api/admin/next-via-number`, { headers });
+      const { via_number } = await res.json();
+      if (via_number) setViaInput(via_number);
+    } catch { /* silent */ } finally { setViaAutoLoading(false); }
   };
 
   const postNote = async () => {
@@ -239,7 +250,7 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold">{biz?.business_name ?? app.applicant_name}</h1>
-              {app.priority && <Star className="w-4 h-4 text-amber-400 fill-amber-400" title="Priority application" />}
+              {app.priority && <Star className="w-4 h-4 text-amber-400 fill-amber-400" aria-label="Priority application" />}
               <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${STATUS_STYLE[app.status] ?? STATUS_STYLE.expired}`}>
                 {STATUS_LABELS[app.status] ?? app.status}
               </span>
@@ -380,6 +391,16 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
                   placeholder="VIA1001"
                   className="font-mono flex-1"
                 />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={autoGenerateVia}
+                  disabled={viaAutoLoading}
+                  title="Auto-assign next sequential VIA number"
+                  className="shrink-0 text-xs"
+                >
+                  {viaAutoLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Auto"}
+                </Button>
                 <Button
                   size="sm"
                   onClick={assignVia}

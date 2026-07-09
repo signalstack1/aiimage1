@@ -157,9 +157,10 @@ router.get("/admin/leads", requireAdmin, async (_req, res) => {
 });
 
 router.post("/admin/leads", requireAdmin, async (req, res) => {
-  const { name, email, phone, location, service_needed, message, status } = req.body || {};
-  if (!isSupabaseConfigured()) return ok(res, { id: `lead-${Date.now()}`, name: name || "", email, phone, location, service_needed, message, status: status || "new", admin_notes: null, created_at: new Date().toISOString() }, 201);
-  const { data, error } = await supabase.from("leads").insert({ name: name || "", email, phone, location, service_needed, message, status: status || "new" }).select().single();
+  const { name, business_name, email, phone, trade, town, website, location, service_needed, message, stage, status } = req.body || {};
+  const resolvedStage = stage || status || "new";
+  if (!isSupabaseConfigured()) return ok(res, { id: `lead-${Date.now()}`, name: name || "", business_name: business_name || "", email, phone, trade: trade || service_needed || "", town: town || location || "", website: website || "", message, stage: resolvedStage, last_contacted_at: null, created_at: new Date().toISOString() }, 201);
+  const { data, error } = await supabase.from("leads").insert({ name: name || "", business_name: business_name || "", email, phone, trade: trade || service_needed || "", town: town || location || "", website: website || "", location, service_needed, message, stage: resolvedStage }).select().single();
   if (error) return err(res, error.message);
   return ok(res, data, 201);
 });

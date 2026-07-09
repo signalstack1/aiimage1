@@ -252,7 +252,10 @@ export default function AdminDashboardPage() {
 
     adminFetch("/api/admin/activity")
       .then((r) => r.json())
-      .then((d) => setActivity(Array.isArray(d) ? d.slice(0, 15) : []))
+      .then((d) => {
+        const list = Array.isArray(d) ? d : Array.isArray(d?.events) ? d.events : [];
+        setActivity(list.slice(0, 15));
+      })
       .catch(() => setActivity([]))
       .finally(() => setActivityLoading(false));
   }, []);

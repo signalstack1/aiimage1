@@ -123,6 +123,115 @@ router.get("/admin/via-overview", requireAdmin, async (_req, res) => {
 });
 
 // =============================================================================
+// ADMIN NOTIFICATIONS
+// =============================================================================
+
+// GET /api/admin/via-notifications — synthesized from DB tables
+router.get("/admin/via-notifications", requireAdmin, async (req, res) => {
+  const limit = Math.min(Number(req.query.limit) || 40, 100);
+  if (!isSupabaseConfigured()) {
+    const now = new Date();
+    return ok(res, [
+      { id: "n-1", type: "new_application", title: "New application submitted", body: "Smith Electrical Ltd (Electrician, Birmingham)", link: "/admin/applications/mock-app-1", is_read: false, created_at: new Date(now.getTime() - 2 * 86400000).toISOString() },
+      { id: "n-2", type: "new_application", title: "Priority application submitted", body: "Jones Plumbing (Plumber, Manchester) — priority", link: "/admin/applications/mock-app-2", is_read: false, created_at: new Date(now.getTime() - 5 * 86400000).toISOString() },
+      { id: "n-3", type: "status_change",   title: "Application approved", body: "Williams Roofing → VIA1001 assigned", link: "/admin/applications/mock-app-3", is_read: true,  created_at: new Date(now.getTime() - 10 * 86400000).toISOString() },
+    ]);
+  }
+
+  try {
+    // Pull from notifications table (admin type) + synthesise from recent applications
+    const { data: notifs } = await supabase
+      .from("notifications")
+      .select("id, title, body, is_read, link, created_at")
+      .eq("recipient_type", "admin")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    // Also pull recent applications as synthetic notifications
+    const { data: recentApps } = await supabase
+      .from("applications")
+      .select("id, status, priority, applicant_name, created_at, businesses(business_name, trade_type)")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    const appEvents = (recentApps || []).map((a: any) => ({
+      id: `app-${a.id}`,
+      type: "new_application",
+      title: a.priority ? "Priority application submitted" : "New application submitted",
+      body: `${a.businesses?.business_name ?? a.applicant_name} (${a.businesses?.trade_type ?? "—"})`,
+      link: `/admin/applications/${a.id}`,
+      is_read: false,
+      created_at: a.created_at,
+    }));
+
+    const all = [...(notifs || []).map((n: any) => ({ ...n, type: "system" })), ...appEvents]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, limit);
+
+    return ok(res, all);
+  } catch (e: any) {
+    logger.error({ err: e }, "GET /admin/via-notifications error");
+    return err(res, e.message);
+  }
+});
+
+// PATCH /api/admin/via-notifications/:id/read — mark notification as read
+router.patch("/admin/via-notifications/:id/read", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (!isSupabaseConfigured()) return ok(res, { ok: true });
+  try {
+    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+    return ok(res, { ok: true });
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// POST /api/admin/via-notifications/mark-all-read — mark all admin notifications read
+router.post("/admin/via-notifications/mark-all-read", requireAdmin, async (_req, res) => {
+  if (!isSupabaseConfigured()) return ok(res, { ok: true });
+  try {
+    await supabase.from("notifications").update({ is_read: true }).eq("recipient_type", "admin").eq("is_read", false);
+    return ok(res, { ok: true });
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// VIA NUMBER — NEXT SEQUENTIAL
+// =============================================================================
+
+// GET /api/admin/next-via-number — returns next sequential VIA number (uses DB function if available)
+router.get("/admin/next-via-number", requireAdmin, async (_req, res) => {
+  if (!isSupabaseConfigured()) {
+    return ok(res, { via_number: "VIA1001" });
+  }
+  try {
+    // Try the DB function first (uses advisory lock for race-safety)
+    const { data, error } = await supabase.rpc("next_via_number");
+    if (!error && data) return ok(res, { via_number: data as string });
+
+    // Fallback: query manually
+    const { data: businesses } = await supabase
+      .from("businesses")
+      .select("via_number")
+      .not("via_number", "is", null);
+    const nums = (businesses || [])
+      .map((b: any) => {
+        const m = b.via_number?.match(/^VIA(\d+)$/);
+        return m ? parseInt(m[1], 10) : 0;
+      })
+      .filter((n: number) => n > 0);
+    const next = nums.length > 0 ? Math.max(...nums) + 1 : 1001;
+    return ok(res, { via_number: `VIA${next}` });
+  } catch (e: any) {
+    logger.error({ err: e }, "GET /admin/next-via-number error");
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
 // APPLICATIONS
 // =============================================================================
 
@@ -393,9 +502,10 @@ router.patch("/admin/businesses/:id/link-user", requireAdmin, async (req, res) =
   if (!isSupabaseConfigured()) return ok(res, { ok: true, linked: false, message: "Supabase not configured" });
   try {
     // Look up user by email in Supabase Auth (admin API)
-    const { data: { users }, error: usersErr } = await supabase.auth.admin.listUsers();
+    const { data: listData, error: usersErr } = await supabase.auth.admin.listUsers();
     if (usersErr) throw usersErr;
-    const user = users.find((u) => u.email === email);
+    const users: any[] = (listData as any)?.users ?? [];
+    const user = users.find((u: any) => u.email === email);
     if (!user) return err(res, `No Supabase Auth user found with email: ${email}`, 404);
     const { error } = await supabase.from("businesses").update({ user_id: user.id }).eq("id", id);
     if (error) throw error;

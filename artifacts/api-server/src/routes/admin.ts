@@ -245,8 +245,8 @@ router.patch("/admin/plans/:id", requireAdmin, async (req, res) => {
     await supabase.from("events").insert({ event_type: "product_publish", product_id: id, product_name: data?.name ?? existing.name, actor: "admin", meta: {} });
   }
 
-  try { if (tag_ids !== undefined) await upsertTagsForProduct(id, tag_ids); } catch (e: any) { logger.warn({ err: e.message }, "upsertTags skipped — schema not migrated"); }
-  try { if (variants !== undefined) await upsertVariantsForProduct(id, variants); } catch (e: any) { logger.warn({ err: e.message }, "upsertVariants skipped — schema not migrated"); }
+  try { if (tag_ids !== undefined) await upsertTagsForProduct(id as string, tag_ids as string[]); } catch (e: any) { logger.warn({ err: e.message }, "upsertTags skipped — schema not migrated"); }
+  try { if (variants !== undefined) await upsertVariantsForProduct(id as string, variants as any[]); } catch (e: any) { logger.warn({ err: e.message }, "upsertVariants skipped — schema not migrated"); }
 
   const { data: full } = await supabase.from("products").select(PRODUCT_SELECT).eq("id", id).single();
   return res.json(full || { ...data, product_tags: [], product_variants: [] });

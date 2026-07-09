@@ -149,7 +149,7 @@ export default function AdminApplicationsPage() {
                             )}
                           </div>
                           {app.priority && (
-                            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" title="Priority" />
+                            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" aria-label="Priority" />
                           )}
                         </div>
                       </td>
