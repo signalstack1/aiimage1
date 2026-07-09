@@ -67,7 +67,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 justify-center mb-8">
-          <TVCLogo size={48} />
+          <TVCLogo size={60} />
           <span className="font-bold text-xl tracking-tight">Approved</span>
         </Link>
 
