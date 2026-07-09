@@ -156,6 +156,14 @@ router.get("/admin/leads", requireAdmin, async (_req, res) => {
   return ok(res, data || []);
 });
 
+router.post("/admin/leads", requireAdmin, async (req, res) => {
+  const { name, email, phone, location, service_needed, message, status } = req.body || {};
+  if (!isSupabaseConfigured()) return ok(res, { id: `lead-${Date.now()}`, name: name || "", email, phone, location, service_needed, message, status: status || "new", admin_notes: null, created_at: new Date().toISOString() }, 201);
+  const { data, error } = await supabase.from("leads").insert({ name: name || "", email, phone, location, service_needed, message, status: status || "new" }).select().single();
+  if (error) return err(res, error.message);
+  return ok(res, data, 201);
+});
+
 router.patch("/admin/leads/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   if (!isSupabaseConfigured()) return ok(res, { id, ...req.body });

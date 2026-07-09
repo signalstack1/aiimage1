@@ -218,10 +218,10 @@ export const APP_CONFIG = {
     // Disabled stubs
     content:          false, // VIA: disabled
     team:             false, // VIA: disabled
-    // VIA-specific (added in Task 3)
-    applications:     false, // VIA: stub — enabled in admin dashboard task
-    members:          false, // VIA: stub — enabled in admin dashboard task
-    payment_links:    false, // VIA: stub — enabled in admin dashboard task
+    // VIA-specific — enabled in Task 8 (admin dashboard)
+    applications:     true,  // VIA: enabled
+    members:          true,  // VIA: enabled
+    payment_links:    true,  // VIA: enabled
   } as Record<string, boolean>,
 };
 

@@ -34,6 +34,10 @@ import AdminSettingsPage from "@/pages/admin/settings";
 import AdminActivityPage from "@/pages/admin/activity";
 import AdminBusinessProfilePage from "@/pages/admin/business-profile";
 import AdminLeadsPage from "@/pages/admin/leads";
+import AdminApplicationsPage from "@/pages/admin/applications";
+import AdminApplicationDetailPage from "@/pages/admin/application-detail";
+import AdminMembersPage from "@/pages/admin/members";
+import AdminPaymentLinksPage from "@/pages/admin/payment-links";
 import { AdminRoute, ModuleRoute } from "@/components/AdminRoute";
 
 // VIA: disabled admin pages — imports preserved for future reactivation
@@ -122,6 +126,18 @@ function Router() {
       {/* ── Admin — VIA modules ───────────────────────────────── */}
       <Route path="/admin/leads">
         {() => <ModuleRoute module="leads"><AdminLeadsPage /></ModuleRoute>}
+      </Route>
+      <Route path="/admin/applications/:id">
+        {(params) => <ModuleRoute module="applications"><AdminApplicationDetailPage id={params?.id} /></ModuleRoute>}
+      </Route>
+      <Route path="/admin/applications">
+        {() => <ModuleRoute module="applications"><AdminApplicationsPage /></ModuleRoute>}
+      </Route>
+      <Route path="/admin/members">
+        {() => <ModuleRoute module="members"><AdminMembersPage /></ModuleRoute>}
+      </Route>
+      <Route path="/admin/payment-links">
+        {() => <ModuleRoute module="payment_links"><AdminPaymentLinksPage /></ModuleRoute>}
       </Route>
 
       {/* ── Admin — VIA: disabled routes (preserved, not in nav) ─ */}

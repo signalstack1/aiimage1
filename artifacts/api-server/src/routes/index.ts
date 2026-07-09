@@ -4,12 +4,14 @@ import publicRouter from "./public";
 import adminRouter from "./admin";
 import modulesRouter from "./modules";
 import viaRouter from "./via";
+import viaAdminRouter from "./via-admin";
 import memberRouter from "./member";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(viaRouter);
+router.use(viaAdminRouter);
 router.use(memberRouter);
 router.use(publicRouter);
 router.use(adminRouter);
