@@ -104,15 +104,22 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = sessionStorage.getItem("admin_token") || "";
     if (!token) return;
-    fetch(`${BASE_URL}/api/admin/via-overview`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        const pending = d?.applications?.pending ?? 0;
-        setPendingApplications(pending);
+
+    const fetchPending = () => {
+      fetch(`${BASE_URL}/api/admin/via-overview`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => {});
+        .then((r) => r.json())
+        .then((d) => {
+          const pending = d?.applications?.pending ?? 0;
+          setPendingApplications(pending);
+        })
+        .catch(() => {});
+    };
+
+    fetchPending();
+    const interval = setInterval(fetchPending, 30_000);
+    return () => clearInterval(interval);
   }, [location]);
 
   const groups = buildNav()
