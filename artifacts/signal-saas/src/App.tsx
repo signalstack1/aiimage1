@@ -2,12 +2,22 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/hooks/useAuth";
+import { MemberRoute } from "@/components/MemberRoute";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home";
 import JoinPage from "@/pages/join";
 import { VerifySearchPage, VerifyProfilePage } from "@/pages/verify";
 import ContactPage from "@/pages/contact";
 import { DisclaimerPage, TermsPage, PrivacyPage } from "@/pages/legal";
+import LoginPage from "@/pages/login";
+import SignupPage from "@/pages/signup";
+import DashboardHome from "@/pages/dashboard/index";
+import DashboardProfile from "@/pages/dashboard/profile";
+import DashboardDocuments from "@/pages/dashboard/documents";
+import DashboardBadge from "@/pages/dashboard/badge";
+import DashboardNotifications from "@/pages/dashboard/notifications";
+import DashboardMembership from "@/pages/dashboard/membership";
 
 // VIA: disabled public pages — imports preserved for future reactivation
 import ProductPage from "@/pages/product";
@@ -49,6 +59,30 @@ const queryClient = new QueryClient({
 function Router() {
   return (
     <Switch>
+      {/* ── Member auth ──────────────────────────────────────── */}
+      <Route path="/login" component={LoginPage} />
+      <Route path="/signup" component={SignupPage} />
+
+      {/* ── Member dashboard (protected) ─────────────────────── */}
+      <Route path="/dashboard">
+        {() => <MemberRoute><DashboardHome /></MemberRoute>}
+      </Route>
+      <Route path="/dashboard/profile">
+        {() => <MemberRoute><DashboardProfile /></MemberRoute>}
+      </Route>
+      <Route path="/dashboard/documents">
+        {() => <MemberRoute><DashboardDocuments /></MemberRoute>}
+      </Route>
+      <Route path="/dashboard/badge">
+        {() => <MemberRoute><DashboardBadge /></MemberRoute>}
+      </Route>
+      <Route path="/dashboard/notifications">
+        {() => <MemberRoute><DashboardNotifications /></MemberRoute>}
+      </Route>
+      <Route path="/dashboard/membership">
+        {() => <MemberRoute><DashboardMembership /></MemberRoute>}
+      </Route>
+
       {/* ── VIA Public ───────────────────────────────────────── */}
       <Route path="/" component={HomePage} />
       <Route path="/join" component={JoinPage} />
@@ -147,7 +181,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
+          <AuthProvider>
+            <Router />
+          </AuthProvider>
         </WouterRouter>
         <Toaster />
       </TooltipProvider>
