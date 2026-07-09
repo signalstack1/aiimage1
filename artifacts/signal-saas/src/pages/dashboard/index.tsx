@@ -24,7 +24,7 @@ const CHECK_LABELS: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   const cfg: Record<string, { cls: string; label: string }> = {
-    approved:  { cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", label: "VIA Verified ✓" },
+    approved:  { cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", label: "TVC Verified ✓" },
     in_review: { cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",      label: "In Review" },
     pending:   { cls: "bg-sky-500/15 text-sky-400 border-sky-500/30",             label: "Pending" },
     rejected:  { cls: "bg-red-500/15 text-red-400 border-red-500/30",             label: "Rejected" },
@@ -79,7 +79,7 @@ export default function DashboardHome() {
         <h1 className="text-2xl font-extrabold mb-1">
           {biz?.business_name ? `Welcome, ${biz.business_name}` : "Member Dashboard"}
         </h1>
-        <p className="text-muted-foreground mb-8">Your VIA verification status and quick links.</p>
+        <p className="text-muted-foreground mb-8">Your TVC verification status and quick links.</p>
 
         {/* VIA number hero card */}
         <div className={`rounded-2xl border p-6 mb-6 ${status === "approved" ? "border-emerald-500/30 bg-emerald-500/5" : "border-border bg-card"}`}>
@@ -89,7 +89,7 @@ export default function DashboardHome() {
                 <ShieldCheck className="w-8 h-8 text-white" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Your VIA Number</p>
+                <p className="text-xs text-muted-foreground mb-1">Your TVC Number</p>
                 <p className="text-3xl font-extrabold font-mono tracking-tight">
                   {viaNumber ?? "Pending…"}
                 </p>
@@ -115,7 +115,7 @@ export default function DashboardHome() {
             <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-amber-400 mb-1">Account not linked to an application</p>
-              <p className="text-sm text-muted-foreground">Your account hasn't been linked to a VIA application yet. If you've already applied, contact us at {APP_CONFIG_EMAIL}.</p>
+              <p className="text-sm text-muted-foreground">Your account hasn't been linked to a TVC application yet. If you've already applied, contact us at {APP_CONFIG_EMAIL}.</p>
             </div>
           </div>
         )}
@@ -174,4 +174,4 @@ export default function DashboardHome() {
 }
 
 // Inline constant to avoid circular import
-const APP_CONFIG_EMAIL = "support@viasecured.co.uk";
+const APP_CONFIG_EMAIL = "support@tvcsecured.co.uk";

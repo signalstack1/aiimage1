@@ -84,7 +84,7 @@ export default function AdminApplicationsPage() {
               <ClipboardList className="w-6 h-6" /> Applications
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Review and manage VIA membership applications.
+              Review and manage TVC membership applications.
             </p>
           </div>
         </div>

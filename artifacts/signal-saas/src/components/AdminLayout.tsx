@@ -32,7 +32,7 @@ function buildNav(): NavGroup[] {
       ],
     },
     {
-      label: "VIA Members",
+      label: "TVC Members",
       items: [
         { key: "applications",  href: "/admin/applications",    label: "Applications",   icon: ClipboardList },
         { key: "members",       href: "/admin/members",         label: "Members",        icon: Users },

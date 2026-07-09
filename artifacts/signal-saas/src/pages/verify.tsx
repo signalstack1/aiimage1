@@ -52,7 +52,7 @@ async function fetchProfile(viaNumber: string): Promise<PublicProfile | null> {
 
 function StatusBadge({ status }: { status: PublicProfile["status"] }) {
   const map = {
-    approved: { label: "VIA Verified", class: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+    approved: { label: "TVC Verified", class: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
     pending:  { label: "Pending Review", class: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
     rejected: { label: "Not Verified", class: "bg-red-500/15 text-red-400 border-red-500/30" },
     expired:  { label: "Expired", class: "bg-muted text-muted-foreground border-border" },
@@ -100,7 +100,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
               <ShieldCheck className="w-7 h-7 text-white" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground font-medium mb-1">VIA Number</p>
+              <p className="text-xs text-muted-foreground font-medium mb-1">TVC Number</p>
               <p className="text-2xl font-extrabold tracking-tight">{profile.via_number}</p>
             </div>
           </div>
@@ -150,7 +150,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
       {/* Verification checks */}
       <div className="bg-card border border-border rounded-2xl p-6 mb-6">
         <h3 className="font-bold mb-1">Verification checks</h3>
-        <p className="text-xs text-muted-foreground mb-4">Each item is independently verified by VIA before being marked as confirmed.</p>
+        <p className="text-xs text-muted-foreground mb-4">Each item is independently verified by TVC before being marked as confirmed.</p>
         <div>
           {allChecks.map((checkType) => (
             <CheckRow
@@ -166,11 +166,11 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
         <Button variant="outline" className="flex-1" asChild>
           <Link href="/verify">
             <Search className="w-4 h-4 mr-2" />
-            Search another VIA number
+            Search another TVC number
           </Link>
         </Button>
         <Button className="flex-1 gradient-brand text-white border-0 hover:opacity-90" asChild>
-          <Link href="/join">Join VIA yourself</Link>
+          <Link href="/join">Join TVC yourself</Link>
         </Button>
       </div>
     </div>
@@ -192,9 +192,9 @@ function SearchPage({ initialQuery = "" }: { initialQuery?: string }) {
       <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-6">
         <ShieldCheck className="w-8 h-8 text-white" />
       </div>
-      <h1 className="text-4xl font-extrabold mb-3">Check a VIA number</h1>
+      <h1 className="text-4xl font-extrabold mb-3">Check a TVC number</h1>
       <p className="text-muted-foreground mb-8 leading-relaxed">
-        Enter the VIA number shown on a tradesperson's badge, van, or website to verify their status instantly.
+        Enter the TVC number shown on a tradesperson's badge, van, or website to verify their status instantly.
       </p>
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">
@@ -202,7 +202,7 @@ function SearchPage({ initialQuery = "" }: { initialQuery?: string }) {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. VIA1042"
+            placeholder="e.g. TVC1042"
             className="pl-9 h-12 text-base bg-card border-border"
             autoFocus
           />
@@ -214,12 +214,12 @@ function SearchPage({ initialQuery = "" }: { initialQuery?: string }) {
       <p className="text-xs text-muted-foreground mt-4">Free to search · No account needed</p>
 
       <div className="mt-12 bg-card border border-border rounded-2xl p-6 text-left">
-        <p className="text-sm font-semibold mb-3">How VIA numbers work</p>
+        <p className="text-sm font-semibold mb-3">How TVC numbers work</p>
         <div className="space-y-3">
           {[
-            "VIA numbers are issued to tradespeople once their independent verification is approved.",
+            "TVC numbers are issued to tradespeople once their independent verification is approved.",
             "Each number is unique and tied to a single business — they cannot be shared or transferred.",
-            "If a VIA number search returns no results, the tradesperson has not been verified by VIA Secured.",
+            "If a TVC number search returns no results, the tradesperson has not been verified by TVC Secured.",
           ].map((s, i) => (
             <div key={i} className="flex gap-3 text-sm text-muted-foreground">
               <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -265,7 +265,7 @@ export function VerifyProfilePage({ viaNumber }: { viaNumber: string }) {
         {profile === "loading" && (
           <div className="text-center py-20">
             <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground text-sm">Checking VIA number…</p>
+            <p className="text-muted-foreground text-sm">Checking TVC number…</p>
           </div>
         )}
 
@@ -276,15 +276,15 @@ export function VerifyProfilePage({ viaNumber }: { viaNumber: string }) {
             </div>
             <h2 className="text-2xl font-bold mb-3">No verified member found</h2>
             <p className="text-muted-foreground mb-2 max-w-sm mx-auto leading-relaxed">
-              The VIA number <span className="font-mono font-semibold text-foreground">{viaNumber}</span> does not match any verified member in our database.
+              The TVC number <span className="font-mono font-semibold text-foreground">{viaNumber}</span> does not match any verified member in our database.
             </p>
-            <p className="text-sm text-muted-foreground mb-8">This could mean the number is invalid, the membership has lapsed, or the tradesperson has not been verified by VIA Secured.</p>
+            <p className="text-sm text-muted-foreground mb-8">This could mean the number is invalid, the membership has lapsed, or the tradesperson has not been verified by TVC Secured.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button variant="outline" asChild>
                 <Link href="/verify">Try another number</Link>
               </Button>
               <Button className="gradient-brand text-white border-0 hover:opacity-90" asChild>
-                <Link href="/join">Join VIA yourself</Link>
+                <Link href="/join">Join TVC yourself</Link>
               </Button>
             </div>
           </div>
@@ -310,8 +310,8 @@ function PageShell({ children }: { children: React.ReactNode }) {
             <span className="font-bold text-lg tracking-tight">{APP_CONFIG.appName}</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
-            <Link href="/verify" className="hover:text-foreground transition-colors text-foreground font-medium">Check a VIA Number</Link>
-            <Link href="/join" className="hover:text-foreground transition-colors">Join VIA</Link>
+            <Link href="/verify" className="hover:text-foreground transition-colors text-foreground font-medium">Check a TVC Number</Link>
+            <Link href="/join" className="hover:text-foreground transition-colors">Join TVC</Link>
             <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
           </nav>
         </div>

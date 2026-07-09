@@ -46,7 +46,7 @@ router.get("/via/verify/:viaNumber", async (req, res) => {
 
   if (!isSupabaseConfigured()) {
     // Dev mock — return a sample profile for VIA1001
-    if (normalized === "VIA1001") {
+    if (normalized === "TVC1001") {
       return ok(res, MOCK_PROFILE);
     }
     return res.status(404).json({ error: "Not found" });
@@ -326,12 +326,12 @@ router.get("/admin/via/members", requireAdmin, async (_req, res) => {
 // =============================================================================
 
 const MOCK_PAYMENT_LINKS = [
-  { id: "pl-1", slug: "via-membership",    label: "VIA Membership (£20/month)",    url: null, is_active: true, sort_order: 0 },
+  { id: "pl-1", slug: "via-membership",    label: "TVC Membership (£20/month)",    url: null, is_active: true, sort_order: 0 },
   { id: "pl-2", slug: "priority-checking", label: "Priority Checking (£49 one-off)", url: null, is_active: true, sort_order: 1 },
 ];
 
 const MOCK_PROFILE = {
-  via_number: "VIA1001",
+  via_number: "TVC1001",
   business_name: "Demo Electrical Services Ltd",
   trade_type: "Electrician",
   location: "Birmingham",

@@ -13,10 +13,10 @@ import { APP_CONFIG } from "@/config/app";
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 
 const BENEFITS = [
-  { icon: Hash,        title: "Unique VIA Number",     desc: "Your own VIA number (e.g. VIA1042) — searchable by the public and displayed on your profile." },
-  { icon: ShieldCheck, title: "Public VIA Profile",    desc: "A verified public page showing your checks, trade type, location, and verification status." },
-  { icon: Award,       title: "Digital Badge",         desc: "A VIA verification badge to use on your website, quotes, and marketing materials." },
-  { icon: Sticker,     title: "VIA Van Sticker Pack",  desc: "Printed VIA stickers for your vehicle — one of the most visible trust signals in the trade." },
+  { icon: Hash,        title: "Unique TVC Number",     desc: "Your own TVC number (e.g. TVC1042) — searchable by the public and displayed on your profile." },
+  { icon: ShieldCheck, title: "Public TVC Profile",    desc: "A verified public page showing your checks, trade type, location, and verification status." },
+  { icon: Award,       title: "Digital Badge",         desc: "A TVC verification badge to use on your website, quotes, and marketing materials." },
+  { icon: Sticker,     title: "TVC Van Sticker Pack",  desc: "Printed TVC stickers for your vehicle — one of the most visible trust signals in the trade." },
   { icon: Star,        title: "Competitive Edge",      desc: "Stand out from unverified tradespeople when customers are comparing quotes." },
 ];
 
@@ -282,7 +282,7 @@ export default function JoinPage() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground mt-4">
-            Documents are stored securely and only visible to VIA verifiers. PDF, JPG, PNG and WebP accepted (max 10 MB each).
+            Documents are stored securely and only visible to TVC verifiers. PDF, JPG, PNG and WebP accepted (max 10 MB each).
           </p>
         </div>
         <PublicFooter />
@@ -301,11 +301,11 @@ export default function JoinPage() {
             </div>
             <h1 className="text-3xl font-extrabold mb-4">Application received!</h1>
             <p className="text-muted-foreground mb-8 leading-relaxed">
-              Thank you for applying to VIA Secured. We'll begin your verification shortly and be in touch via email with next steps.
+              Thank you for applying to TVC Secured. We'll begin your verification shortly and be in touch via email with next steps.
             </p>
             <div className="bg-card border border-border rounded-2xl p-6 mb-6 text-left space-y-3">
               <p className="text-sm font-semibold mb-2">What happens next?</p>
-              {["We review your application within 24 hours", "Our team runs your 6 independent checks", "You receive your VIA number and profile once approved"].map((s, i) => (
+              {["We review your application within 24 hours", "Our team runs your 6 independent checks", "You receive your TVC number and profile once approved"].map((s, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
                   <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 text-xs font-bold mt-0.5">{i + 1}</div>
                   {s}
@@ -331,13 +331,13 @@ export default function JoinPage() {
         <div className="max-w-3xl mx-auto text-center">
           <Badge variant="outline" className="mb-6 border-primary/30 text-primary bg-primary/5 px-3 py-1 text-xs font-medium">
             <ShieldCheck className="w-3 h-3 mr-1.5" />
-            Join VIA Secured
+            Join TVC Secured
           </Badge>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
             Get independently <span className="gradient-text">verified</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
-            Give customers the confidence to choose you. VIA independently verifies your business so your badge does the talking.
+            Give customers the confidence to choose you. TVC independently verifies your business so your badge does the talking.
           </p>
         </div>
       </section>
@@ -347,11 +347,11 @@ export default function JoinPage() {
         {/* Left: Pricing + Benefits */}
         <div className="space-y-6">
 
-          {/* VIA Membership card */}
+          {/* TVC Membership card */}
           <div className="bg-card border border-border rounded-2xl p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">VIA Membership</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">TVC Membership</p>
                 <div className="flex items-end gap-1.5">
                   <span className="text-4xl font-extrabold">£20</span>
                   <span className="text-muted-foreground mb-1.5 text-sm">/month</span>
@@ -360,7 +360,7 @@ export default function JoinPage() {
               <Badge className="bg-primary/10 text-primary border-primary/20">Standard</Badge>
             </div>
             <ul className="space-y-2.5 mb-6">
-              {(APP_CONFIG.planFeatures["via membership"]?.features ?? []).map((f) => (
+              {(APP_CONFIG.planFeatures["tvc membership"]?.features ?? []).map((f) => (
                 <li key={f} className="flex items-start gap-2.5 text-sm">
                   <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <span>{f}</span>
@@ -369,7 +369,7 @@ export default function JoinPage() {
             </ul>
             <PaymentButton
               slug="via-membership"
-              label="Join VIA — £20/month"
+              label="Join TVC — £20/month"
               className="gradient-brand text-white border-0 hover:opacity-90 glow-primary-sm"
             />
           </div>
@@ -521,8 +521,8 @@ function PublicNav() {
           <span className="font-bold text-lg tracking-tight">{APP_CONFIG.appName}</span>
         </Link>
         <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
-          <Link href="/verify" className="hover:text-foreground transition-colors">Check a VIA Number</Link>
-          <Link href="/join" className="hover:text-foreground transition-colors text-foreground font-medium">Join VIA</Link>
+          <Link href="/verify" className="hover:text-foreground transition-colors">Check a TVC Number</Link>
+          <Link href="/join" className="hover:text-foreground transition-colors text-foreground font-medium">Join TVC</Link>
           <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
         </nav>
       </div>
@@ -535,9 +535,7 @@ function PublicFooter() {
     <footer className="border-t border-border py-8 px-6 mt-auto">
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded gradient-brand flex items-center justify-center">
-            <ShieldCheck className="w-3 h-3 text-white" />
-          </div>
+          <img src="/tvc_logo.png" alt="TVC Secured" className="w-6 h-6 rounded object-cover" />
           <span className="font-semibold text-foreground">{APP_CONFIG.appName}</span>
         </div>
         <div className="flex items-center gap-6">

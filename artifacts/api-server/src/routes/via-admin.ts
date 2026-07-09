@@ -138,7 +138,7 @@ router.get("/admin/via-notifications", requireAdmin, async (req, res) => {
     return ok(res, [
       { id: "n-1", type: "new_application", title: "New application submitted", body: "Smith Electrical Ltd (Electrician, Birmingham)", link: "/admin/applications/mock-app-1", is_read: false, created_at: new Date(now.getTime() - 2 * 86400000).toISOString() },
       { id: "n-2", type: "new_application", title: "Priority application submitted", body: "Jones Plumbing (Plumber, Manchester) — priority", link: "/admin/applications/mock-app-2", is_read: false, created_at: new Date(now.getTime() - 5 * 86400000).toISOString() },
-      { id: "n-3", type: "status_change",   title: "Application approved", body: "Williams Roofing → VIA1001 assigned", link: "/admin/applications/mock-app-3", is_read: true,  created_at: new Date(now.getTime() - 10 * 86400000).toISOString() },
+      { id: "n-3", type: "status_change",   title: "Application approved", body: "Williams Roofing → TVC1001 assigned", link: "/admin/applications/mock-app-3", is_read: true,  created_at: new Date(now.getTime() - 10 * 86400000).toISOString() },
     ]);
   }
 
@@ -209,7 +209,7 @@ router.post("/admin/via-notifications/mark-all-read", requireAdmin, async (_req,
 // GET /api/admin/next-via-number — returns next sequential VIA number (uses DB function if available)
 router.get("/admin/next-via-number", requireAdmin, async (_req, res) => {
   if (!isSupabaseConfigured()) {
-    return ok(res, { via_number: "VIA1001" });
+    return ok(res, { via_number: "TVC1001" });
   }
   try {
     // Try the DB function first (uses advisory lock for race-safety)
@@ -321,8 +321,8 @@ router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
     // ── STEP 1: VIA uniqueness check — NO DB writes yet ───────────────────────
     if (via_number && via_number_for_business_id) {
       const normalized = via_number.trim().toUpperCase();
-      if (!/^VIA\d+$/i.test(normalized)) {
-        return err(res, "VIA number must be in the format VIA1001", 400);
+      if (!/^TVC\d+$/i.test(normalized)) {
+        return err(res, "TVC number must be in the format TVC1001", 400);
       }
       const { data: conflict } = await supabase
         .from("businesses")
@@ -346,8 +346,8 @@ router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
         await supabase.from("notifications").insert({
           business_id: via_number_for_business_id,
           recipient_type: "member",
-          title: "Your VIA application has been approved!",
-          body: `Congratulations — your VIA number is ${normalized}. You can now download your badge from the member dashboard.`,
+          title: "Your TVC application has been approved!",
+          body: `Congratulations — your TVC number is ${normalized}. You can now download your badge from the member dashboard.`,
         });
       } catch { /* non-fatal */ }
     }
@@ -474,7 +474,7 @@ router.get("/admin/members", requireAdmin, async (req, res) => {
     return ok(res, [
       {
         id: "mock-biz-3", business_name: "Williams Roofing", trade_type: "Roofer",
-        location: "Leeds", via_number: "VIA1001", user_id: null,
+        location: "Leeds", via_number: "TVC1001", user_id: null,
         applications: [{ status: "approved", updated_at: new Date(Date.now() - 10 * 86400000).toISOString() }],
       },
     ]);
@@ -523,7 +523,7 @@ router.get("/admin/members/:id", requireAdmin, async (req, res) => {
       contact_phone: "07700 900003",
       contact_email: "info@williamsroofing.co.uk",
       description: "Professional roofing services across West Yorkshire.",
-      via_number: "VIA1001",
+      via_number: "TVC1001",
       user_id: null,
       application: { id: "mock-app-3", status: "approved", created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
       documents: [
@@ -669,7 +669,7 @@ router.post("/admin/applications/:id/request-documents", requireAdmin, async (re
       .single();
 
     const notifMessage = message?.trim() ||
-      "The VIA team requires additional supporting documents to progress your verification. Please log in to your dashboard and upload the requested files.";
+      "The TVC team requires additional supporting documents to progress your verification. Please log in to your dashboard and upload the requested files.";
 
     await supabase.from("notifications").insert({
       recipient_type: "member",

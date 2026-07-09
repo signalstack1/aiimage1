@@ -69,7 +69,7 @@ export default function AdminMembersPage() {
               <Users className="w-6 h-6" /> Members
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              All businesses with VIA applications, searchable and filterable.
+              All businesses with TVC applications, searchable and filterable.
             </p>
           </div>
         </div>
@@ -82,7 +82,7 @@ export default function AdminMembersPage() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, VIA number or location…"
+                placeholder="Search by name, TVC number or location…"
                 className="pl-9"
               />
             </div>

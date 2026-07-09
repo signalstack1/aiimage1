@@ -195,7 +195,7 @@ function ActivityFeed({ items, loading }: { items: ActivityItem[]; loading: bool
     <div className="bg-card border border-border rounded-xl overflow-hidden h-full">
       <div className="px-5 py-4 border-b border-border">
         <p className="font-semibold text-sm">Recent Activity</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Platform events across all VIA activity</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Platform events across all TVC activity</p>
       </div>
       <div className="divide-y divide-border">
         {loading ? (
@@ -208,7 +208,7 @@ function ActivityFeed({ items, loading }: { items: ActivityItem[]; loading: bool
             ))}
           </div>
         ) : items.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground text-center">No activity yet. Events appear here as members interact with VIA.</p>
+          <p className="p-6 text-sm text-muted-foreground text-center">No activity yet. Events appear here as members interact with TVC.</p>
         ) : (
           items.map((item) => {
             const meta = EVENT_META[item.event_type] ?? { icon: Activity, color: "text-muted-foreground bg-muted", label: item.event_type };
@@ -292,7 +292,7 @@ export default function AdminDashboardPage() {
           <KpiCard
             label="Approved Members"
             value={viaData?.members_approved ?? 0}
-            sub="VIA numbers assigned"
+            sub="TVC numbers assigned"
             icon={ShieldCheck}
             color="bg-emerald-500/10 text-emerald-400"
             loading={loading}

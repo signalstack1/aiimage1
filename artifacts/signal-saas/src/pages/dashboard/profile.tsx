@@ -96,7 +96,7 @@ export default function DashboardProfile() {
     <DashboardLayout>
       <div className="p-8 max-w-2xl">
         <h1 className="text-2xl font-extrabold mb-1">My Profile</h1>
-        <p className="text-muted-foreground mb-8">Update your business details. These appear on your public VIA profile once approved.</p>
+        <p className="text-muted-foreground mb-8">Update your business details. These appear on your public TVC profile once approved.</p>
 
         {error && (
           <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-3 mb-6">
@@ -169,7 +169,7 @@ export default function DashboardProfile() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Show phone on public profile</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Customers can see your number on your VIA profile page.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Customers can see your number on your TVC profile page.</p>
               </div>
               <Switch
                 checked={form.contact_enabled}

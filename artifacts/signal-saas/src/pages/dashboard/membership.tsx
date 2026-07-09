@@ -48,7 +48,7 @@ export default function DashboardMembership() {
     <DashboardLayout>
       <div className="p-8 max-w-2xl">
         <h1 className="text-2xl font-extrabold mb-1">Membership</h1>
-        <p className="text-muted-foreground mb-8">Manage your VIA membership and subscription.</p>
+        <p className="text-muted-foreground mb-8">Manage your TVC membership and subscription.</p>
 
         {/* Current status */}
         <div className="bg-card border border-border rounded-2xl p-6 mb-6">
@@ -58,13 +58,13 @@ export default function DashboardMembership() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <p className="font-bold">VIA Membership</p>
+                <p className="font-bold">TVC Membership</p>
                 <StatusPill status={status} />
               </div>
               <p className="text-sm text-muted-foreground">
                 {viaNum
-                  ? `VIA number: ${viaNum}`
-                  : "VIA number will be assigned once your application is approved."}
+                  ? `TVC number: ${viaNum}`
+                  : "TVC number will be assigned once your application is approved."}
               </p>
               {isPriority && (
                 <div className="flex items-center gap-1.5 mt-2 text-xs text-primary">
@@ -80,7 +80,7 @@ export default function DashboardMembership() {
         <div className="bg-card border border-border rounded-2xl p-6 mb-6">
           <h2 className="font-bold mb-4">What's included in your membership</h2>
           <ul className="space-y-2.5">
-            {(APP_CONFIG.planFeatures["via membership"]?.features ?? []).map((f) => (
+            {(APP_CONFIG.planFeatures["tvc membership"]?.features ?? []).map((f) => (
               <li key={f} className="flex items-start gap-2.5 text-sm">
                 <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                 {f}

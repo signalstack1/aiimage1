@@ -64,7 +64,7 @@ export default function SignupPage() {
         <div className="bg-card border border-border rounded-2xl p-8">
           <h1 className="text-2xl font-extrabold mb-1">Create your account</h1>
           <p className="text-sm text-muted-foreground mb-6">
-            Set up your member login to access your VIA dashboard.
+            Set up your member login to access your TVC dashboard.
           </p>
 
           {error && (

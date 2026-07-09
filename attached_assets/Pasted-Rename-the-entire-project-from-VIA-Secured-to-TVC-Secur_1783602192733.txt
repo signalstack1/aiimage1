@@ -1,0 +1,116 @@
+Rename the entire project from VIA Secured to TVC Secured.
+
+TVC means:
+Trades Verified & Checked
+
+Replace all public-facing references:
+- VIA Secured → TVC Secured
+- VIA number → TVC number
+- VIA checked → TVC checked
+- VIA member → TVC member
+- VIA profile → TVC profile
+- VIA badge → TVC badge
+- VIA membership → TVC membership
+- Join VIA → Join TVC
+- Check a VIA Number → Check a TVC Number
+- Become VIA checked → Become TVC checked
+
+Update brand copy:
+TVC Secured is a tradesperson verification SaaS platform for UK tradespeople.
+
+Core concept:
+Tradespeople apply to become TVC checked. Admin verifies their business details, insurance, accreditations, address, digital footprint, public records and contact details. Once approved, the business receives a unique TVC number, public profile, digital badge, and member dashboard.
+
+Brand tagline:
+TVC Secured
+Trades Verified & Checked
+
+TVC number logic:
+Change unique numbers from:
+VIA1001, VIA1002, VIA1003
+
+To:
+TVC1001, TVC1002, TVC1003
+
+Only approved members should be publicly searchable by TVC number.
+
+Update homepage:
+Hero headline:
+“Don’t take their word for it…”
+
+Subtext:
+“TVC Secured independently checks tradespeople so homeowners can verify who they are, where they operate, and whether their key credentials have been reviewed.”
+
+CTA buttons:
+- Join TVC
+- Check a TVC Number
+
+How it works:
+1. Spot the Badge
+2. Search Company
+3. Checked or Not
+
+What we check:
+- Local address
+- Business type
+- Public liability insurance
+- Trade accreditations
+- Digital footprint
+- Contact and public records
+
+Join page:
+Update offer wording:
+- £20/month TVC Secured membership
+- Optional £49 priority checking add-on
+
+Benefits:
+- TVC number
+- TVC profile
+- TVC van stickers
+- TVC digital badge
+- Competitive edge
+
+Member dashboard:
+Update labels to:
+- View TVC number
+- Edit business profile
+- Upload insurance proof
+- Upload accreditation proof
+- View verification status
+- View referral code
+- View TVC badge assets
+- View notifications
+
+Admin dashboard:
+Update labels to:
+- Assign TVC numbers
+- Manage TVC members
+- Review TVC applications
+- Approve/reject TVC verification
+- Edit verification checklist
+- View uploaded documents
+- Manage payment links
+- View leads pipeline
+
+Payment links:
+Do not add Stripe.
+Continue using the existing admin-managed external payment link system.
+
+Required payment links:
+1. TVC Membership Payment Link - £20/month
+2. Priority Checking Payment Link - £49 one-off
+
+If no payment link exists, show:
+“Payment link not configured yet.”
+
+Important:
+Do not delete old code.
+Do not remove database tables unless necessary.
+If existing database fields use via_number, either:
+- safely migrate to tvc_number, or
+- keep the internal field as via_number temporarily but display it publicly as TVC number.
+
+Priority:
+Make all user-facing branding say TVC Secured.
+Make all generated verification numbers use TVC prefix.
+Make all navigation, buttons, headings, emails, dashboard labels, and public profile text use TVC instead of VIA.

@@ -336,7 +336,7 @@ router.get("/member/documents/:id/url", requireMember, async (req: AuthedRequest
 router.get("/member/notifications", requireMember, async (req: AuthedRequest, res) => {
   if (!isSupabaseConfigured()) {
     return ok(res, [
-      { id: "n1", title: "Application received", body: "Your VIA application has been received and is being reviewed.", is_read: false, link: null, created_at: new Date().toISOString() },
+      { id: "n1", title: "Application received", body: "Your TVC application has been received and is being reviewed.", is_read: false, link: null, created_at: new Date().toISOString() },
     ]);
   }
 

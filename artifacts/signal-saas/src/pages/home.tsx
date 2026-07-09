@@ -43,7 +43,7 @@ function StarRating({ n }: { n: number }) {
   );
 }
 
-function VIASearchBar() {
+function TVCSearchBar() {
   const [value, setValue] = useState("");
   const [, navigate] = useLocation();
 
@@ -60,7 +60,7 @@ function VIASearchBar() {
         <Input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Enter VIA number e.g. VIA1042"
+          placeholder="Enter TVC number e.g. TVC1042"
           className="pl-9 h-12 text-base bg-card border-border"
         />
       </div>
@@ -78,14 +78,12 @@ export default function HomePage() {
       <header className="fixed top-0 inset-x-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-white" />
-            </div>
+            <img src="/tvc_logo.png" alt="TVC Secured" className="w-8 h-8 rounded-lg object-cover" />
             <span className="font-bold text-lg tracking-tight">{APP_CONFIG.appName}</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
-            <Link href="/verify" className="hover:text-foreground transition-colors">Check a VIA Number</Link>
-            <Link href="/join" className="hover:text-foreground transition-colors">Join VIA</Link>
+            <Link href="/verify" className="hover:text-foreground transition-colors">Check a TVC Number</Link>
+            <Link href="/join" className="hover:text-foreground transition-colors">Join TVC</Link>
             <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
           </nav>
           <Button size="sm" className="gradient-brand text-white border-0 hover:opacity-90 font-semibold" asChild>
@@ -113,20 +111,20 @@ export default function HomePage() {
             {APP_CONFIG.hero.subtext}
           </p>
 
-          {/* VIA Number Search */}
+          {/* TVC Number Search */}
           <div className="mb-8">
-            <VIASearchBar />
+            <TVCSearchBar />
             <p className="text-xs text-muted-foreground mt-3">Free to search · No account needed</p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="gradient-brand text-white border-0 hover:opacity-90 text-base font-semibold px-8 h-12 glow-primary" asChild>
-              <Link href="/join">Join VIA — £20/month</Link>
+              <Link href="/join">Join TVC — £20/month</Link>
             </Button>
             <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
               <Link href="/verify">
                 <Search className="w-4 h-4 mr-2" />
-                Check a VIA Number
+                Check a TVC Number
               </Link>
             </Button>
           </div>
@@ -172,7 +170,7 @@ export default function HomePage() {
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-extrabold mb-4">What we check</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Every VIA verification covers six independent checks — all confirmed before a VIA number is issued.
+              Every TVC verification covers six independent checks — all confirmed before a TVC number is issued.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
@@ -241,7 +239,7 @@ export default function HomePage() {
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
-              <Link href="/verify">Check a VIA Number</Link>
+              <Link href="/verify">Check a TVC Number</Link>
             </Button>
           </div>
         </div>
@@ -251,9 +249,7 @@ export default function HomePage() {
       <footer className="border-t border-border py-10 px-6">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded gradient-brand flex items-center justify-center">
-              <ShieldCheck className="w-3 h-3 text-white" />
-            </div>
+            <img src="/tvc_logo.png" alt="TVC Secured" className="w-6 h-6 rounded object-cover" />
             <span className="font-semibold text-foreground">{APP_CONFIG.appName}</span>
           </div>
           <div className="flex items-center gap-6">

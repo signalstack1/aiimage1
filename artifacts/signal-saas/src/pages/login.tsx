@@ -45,7 +45,7 @@ export default function LoginPage() {
 
         <div className="bg-card border border-border rounded-2xl p-8">
           <h1 className="text-2xl font-extrabold mb-1">Member login</h1>
-          <p className="text-sm text-muted-foreground mb-6">Sign in to your VIA member dashboard.</p>
+          <p className="text-sm text-muted-foreground mb-6">Sign in to your TVC member dashboard.</p>
 
           {error && (
             <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-3 mb-5">
@@ -87,7 +87,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground mt-5">
           Not a member yet?{" "}
-          <Link href="/join" className="text-primary hover:underline font-medium">Apply for VIA membership</Link>
+          <Link href="/join" className="text-primary hover:underline font-medium">Apply for TVC membership</Link>
         </p>
         <p className="text-center text-sm text-muted-foreground mt-2">
           Already applied and need an account?{" "}

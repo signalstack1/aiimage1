@@ -156,8 +156,8 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
   const assignVia = async () => {
     if (!app?.businesses?.id) return;
     const norm = viaInput.trim().toUpperCase();
-    if (!norm.match(/^VIA\d{4,}$/)) {
-      setViaError("VIA number format: VIA followed by 4+ digits (e.g. VIA1001)");
+    if (!norm.match(/^TVC\d{4,}$/)) {
+      setViaError("TVC number format: TVC followed by 4+ digits (e.g. TVC1001)");
       return;
     }
     setViaAssigning(true);
@@ -537,10 +537,10 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
               </div>
             </div>
 
-            {/* VIA number assignment */}
+            {/* TVC number assignment */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-1">Assign VIA Number</h2>
-              <p className="text-xs text-muted-foreground mb-4">Assigning a VIA number sets status to Approved and notifies the member.</p>
+              <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-1">Assign TVC Number</h2>
+              <p className="text-xs text-muted-foreground mb-4">Assigning a TVC number sets status to Approved and notifies the member.</p>
               {viaError && (
                 <div className="bg-destructive/10 border border-destructive/30 text-destructive text-xs rounded-lg px-3 py-2 mb-3">
                   {viaError}
@@ -548,14 +548,14 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
               )}
               {viaSuccess && (
                 <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded-lg px-3 py-2 mb-3 flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> VIA number assigned and member notified.
+                  <CheckCircle2 className="w-3.5 h-3.5" /> TVC number assigned and member notified.
                 </div>
               )}
               <div className="flex items-center gap-2">
                 <Input
                   value={viaInput}
                   onChange={(e) => setViaInput(e.target.value.toUpperCase())}
-                  placeholder="VIA1001"
+                  placeholder="TVC1001"
                   className="font-mono flex-1"
                 />
                 <Button
@@ -563,7 +563,7 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
                   variant="outline"
                   onClick={autoGenerateVia}
                   disabled={viaAutoLoading}
-                  title="Auto-assign next sequential VIA number"
+                  title="Auto-assign next sequential TVC number"
                   className="shrink-0 text-xs"
                 >
                   {viaAutoLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Auto"}

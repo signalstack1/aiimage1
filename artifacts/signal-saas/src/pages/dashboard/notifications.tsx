@@ -78,7 +78,7 @@ export default function DashboardNotifications() {
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground mb-8">Status updates and messages from VIA Secured.</p>
+        <p className="text-muted-foreground mb-8">Status updates and messages from TVC Secured.</p>
 
         {loading && (
           <div className="flex items-center justify-center py-16">

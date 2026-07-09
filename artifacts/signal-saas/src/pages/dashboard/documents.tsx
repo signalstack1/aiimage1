@@ -63,7 +63,7 @@ const SECTIONS: DocSection[] = [
     type: "other",
     icon: HelpCircle,
     label: "Other Supporting Documents",
-    description: "Any additional evidence requested by the VIA team.",
+    description: "Any additional evidence requested by the TVC team.",
   },
 ];
 
@@ -327,7 +327,7 @@ export default function DashboardDocuments() {
         <div className="mt-6 bg-card border border-border rounded-xl p-4 flex gap-3">
           <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Documents are stored securely and only visible to VIA verifiers. They are never shared publicly. PDF, JPG, PNG and WebP accepted (max 10 MB each). You can upload new documents or replace expired ones at any time.
+            Documents are stored securely and only visible to TVC verifiers. They are never shared publicly. PDF, JPG, PNG and WebP accepted (max 10 MB each). You can upload new documents or replace expired ones at any time.
           </p>
         </div>
       </div>
