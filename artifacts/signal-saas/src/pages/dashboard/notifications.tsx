@@ -16,19 +16,15 @@ interface Notification {
 }
 
 export default function DashboardNotifications() {
-  const { session } = useAuth();
+  const { fetchWithAuth } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading]   = useState(true);
   const [marking, setMarking]   = useState(false);
 
-  const token = session?.access_token;
-
   const load = async () => {
-    if (!token) { setLoading(false); return; }
     try {
-      const res = await fetch(`${BASE_URL}/api/member/notifications`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${BASE_URL}/api/member/notifications`);
+      if (!res.ok) { setLoading(false); return; }
       const data = await res.json();
       if (Array.isArray(data)) setNotifications(data);
     } catch { /* silent */ } finally {
@@ -36,23 +32,19 @@ export default function DashboardNotifications() {
     }
   };
 
-  useEffect(() => { load(); }, [token]);
+  useEffect(() => { load(); }, []);
 
   const markAsRead = async (id: string) => {
-    if (!token) return;
-    await fetch(`${BASE_URL}/api/member/notifications/${id}/read`, {
+    await fetchWithAuth(`${BASE_URL}/api/member/notifications/${id}/read`, {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {});
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
   };
 
   const markAllRead = async () => {
-    if (!token) return;
     setMarking(true);
-    await fetch(`${BASE_URL}/api/member/notifications/read-all`, {
+    await fetchWithAuth(`${BASE_URL}/api/member/notifications/read-all`, {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {});
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setMarking(false);

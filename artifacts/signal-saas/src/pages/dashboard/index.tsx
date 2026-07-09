@@ -43,26 +43,21 @@ const QUICK_LINKS = [
 ];
 
 export default function DashboardHome() {
-  const { member, session } = useAuth();
+  const { member, fetchWithAuth } = useAuth();
   const [checks, setChecks] = useState<Check[]>([]);
   const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
-    if (!session?.access_token) return;
-    const token = session.access_token;
+    fetchWithAuth(`${BASE_URL}/api/member/verification-checks`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data)) setChecks(data); })
+      .catch(() => {});
 
-    fetch(`${BASE_URL}/api/member/verification-checks`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(r => r.json()).then(data => {
-      if (Array.isArray(data)) setChecks(data);
-    }).catch(() => {});
-
-    fetch(`${BASE_URL}/api/member/notifications`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(r => r.json()).then(data => {
-      if (Array.isArray(data)) setNotifCount(data.filter((n: any) => !n.is_read).length);
-    }).catch(() => {});
-  }, [session?.access_token]);
+    fetchWithAuth(`${BASE_URL}/api/member/notifications`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data)) setNotifCount(data.filter((n: any) => !n.is_read).length); })
+      .catch(() => {});
+  }, []);
 
   const status = member?.application?.status ?? "pending";
   const viaNumber = member?.business?.via_number;

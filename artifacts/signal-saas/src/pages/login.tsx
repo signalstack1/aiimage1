@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { APP_CONFIG } from "@/config/app";
 
@@ -14,6 +14,8 @@ export default function LoginPage() {
   const [loading, setLoading]   = useState(false);
   const { signIn, user }        = useAuth();
   const [, navigate]            = useLocation();
+
+  const sessionExpired = new URLSearchParams(window.location.search).get("expired") === "1";
 
   // Already logged in → redirect
   if (user) {
@@ -42,6 +44,14 @@ export default function LoginPage() {
           </div>
           <span className="font-bold text-xl tracking-tight">{APP_CONFIG.appName}</span>
         </Link>
+
+        {/* Session expired banner */}
+        {sessionExpired && (
+          <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm rounded-xl px-4 py-3 mb-5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>Your session expired. Please sign in again to continue.</span>
+          </div>
+        )}
 
         <div className="bg-card border border-border rounded-2xl p-8">
           <h1 className="text-2xl font-extrabold mb-1">Member login</h1>

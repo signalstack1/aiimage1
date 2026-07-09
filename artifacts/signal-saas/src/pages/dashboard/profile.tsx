@@ -28,7 +28,7 @@ interface ProfileForm {
 }
 
 export default function DashboardProfile() {
-  const { member, session, refreshMember } = useAuth();
+  const { member, refreshMember, fetchWithAuth } = useAuth();
   const [form, setForm] = useState<ProfileForm>({
     business_name: "",
     trade_type: "",
@@ -66,16 +66,12 @@ export default function DashboardProfile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!session?.access_token) return;
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`${BASE_URL}/api/member/profile`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/member/profile`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       if (!res.ok) {

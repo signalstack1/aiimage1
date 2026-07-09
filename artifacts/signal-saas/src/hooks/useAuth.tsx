@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -42,6 +42,12 @@ interface AuthContextValue {
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshMember: () => Promise<void>;
+  /**
+   * Authenticated fetch for /api/member/* calls.
+   * On 401: attempts a session refresh and retries once.
+   * If refresh fails: signs out and redirects to /login?expired=1.
+   */
+  fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -79,6 +85,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await fetchMember(session.access_token);
     setMember(data);
   };
+
+  // Redirect to login with an expiry flag and clear all local auth state
+  const handleSessionExpired = useCallback(async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setMember(null);
+    window.location.href = `${BASE_URL}/login?expired=1`;
+  }, []);
+
+  /**
+   * Authenticated fetch wrapper.
+   * - Injects the current Bearer token.
+   * - On 401: refreshes the Supabase session and retries once.
+   * - If the refresh itself fails: signs out and navigates to /login?expired=1.
+   */
+  const fetchWithAuth = useCallback(async (
+    url: string,
+    options: RequestInit = {},
+  ): Promise<Response> => {
+    const currentSession = await supabase.auth.getSession().then(({ data }) => data.session);
+
+    if (!currentSession?.access_token) {
+      handleSessionExpired();
+      return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401 });
+    }
+
+    const withBearer = (token: string): RequestInit => ({
+      ...options,
+      headers: {
+        ...(options.headers ?? {}),
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    let res = await fetch(url, withBearer(currentSession.access_token));
+
+    if (res.status === 401) {
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+      if (refreshError || !refreshData.session) {
+        handleSessionExpired();
+        return new Response(JSON.stringify({ error: "Session expired" }), { status: 401 });
+      }
+
+      const newSession = refreshData.session;
+      setSession(newSession);
+      setUser(newSession.user);
+
+      // Retry with the fresh token
+      res = await fetch(url, withBearer(newSession.access_token));
+
+      // If still 401 after refresh, give up
+      if (res.status === 401) {
+        handleSessionExpired();
+        return new Response(JSON.stringify({ error: "Session expired" }), { status: 401 });
+      }
+    }
+
+    return res;
+  }, [handleSessionExpired]);
 
   useEffect(() => {
     // Initialise from current session
@@ -120,11 +187,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
     setMember(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, member, loading, signIn, signUp, signOut, refreshMember }}>
+    <AuthContext.Provider value={{ user, session, member, loading, signIn, signUp, signOut, refreshMember, fetchWithAuth }}>
       {children}
     </AuthContext.Provider>
   );

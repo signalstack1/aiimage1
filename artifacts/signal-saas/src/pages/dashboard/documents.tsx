@@ -108,27 +108,23 @@ function StatusBadge({ status }: { status: DocStatus }) {
 }
 
 export default function DashboardDocuments() {
-  const { session } = useAuth();
+  const { fetchWithAuth } = useAuth();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [deleting, setDeleting]   = useState<Record<string, boolean>>({});
   const [errors, setErrors]       = useState<Record<string, string>>({});
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const token = session?.access_token;
-
   const loadDocs = async () => {
-    if (!token) return;
     try {
-      const res = await fetch(`${BASE_URL}/api/member/documents`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${BASE_URL}/api/member/documents`);
+      if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data)) setDocs(data);
     } catch { }
   };
 
-  useEffect(() => { loadDocs(); }, [token]);
+  useEffect(() => { loadDocs(); }, []);
 
   const bufferToBase64 = (buffer: ArrayBuffer): string => {
     const bytes = new Uint8Array(buffer);
@@ -141,7 +137,6 @@ export default function DashboardDocuments() {
   };
 
   const handleFileChange = async (docType: string, file: File) => {
-    if (!token) return;
     const mb = file.size / (1024 * 1024);
     if (mb > MAX_MB) {
       setErrors((e) => ({ ...e, [docType]: `File is too large (${mb.toFixed(1)} MB). Maximum is ${MAX_MB} MB.` }));
@@ -155,12 +150,9 @@ export default function DashboardDocuments() {
       const buffer = await file.arrayBuffer();
       const base64 = bufferToBase64(buffer);
 
-      const res = await fetch(`${BASE_URL}/api/member/documents`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/member/documents`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           file_data: base64,
           mime_type: file.type,
@@ -183,12 +175,10 @@ export default function DashboardDocuments() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!token) return;
     setDeleting((d) => ({ ...d, [id]: true }));
     try {
-      await fetch(`${BASE_URL}/api/member/documents/${id}`, {
+      await fetchWithAuth(`${BASE_URL}/api/member/documents/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       setDocs((prev) => prev.filter((d) => d.id !== id));
     } catch { } finally {
@@ -197,11 +187,8 @@ export default function DashboardDocuments() {
   };
 
   const handleViewDoc = async (id: string) => {
-    if (!token) return;
     try {
-      const res = await fetch(`${BASE_URL}/api/member/documents/${id}/url`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${BASE_URL}/api/member/documents/${id}/url`);
       const { url } = await res.json();
       if (url) window.open(url, "_blank", "noopener");
     } catch { }
