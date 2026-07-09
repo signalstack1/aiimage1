@@ -168,7 +168,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     >
                       <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? "text-primary" : ""}`} />
                       <span className="flex-1">{label}</span>
-                      {key === "applications" && pendingApplications > 0 && (
+                      {key === "applications" && pendingApplications > 0 && !active && (
                         <span className="text-[10px] font-bold bg-amber-500 text-white rounded-full min-w-[1rem] h-4 px-1 flex items-center justify-center shrink-0">
                           {pendingApplications > 99 ? "99+" : pendingApplications}
                         </span>
