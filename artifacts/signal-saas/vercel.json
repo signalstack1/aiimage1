@@ -3,7 +3,12 @@
   "outputDirectory": "dist",
   "installCommand": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 pnpm install",
   "framework": null,
-  "env": {
-    "BASE_PATH": "/"
-  }
+  "functions": {
+    "api/[...path].ts": {
+      "runtime": "@vercel/node@3"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/[...path]" }
+  ]
 }
