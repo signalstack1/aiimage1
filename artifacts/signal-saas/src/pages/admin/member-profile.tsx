@@ -3,9 +3,11 @@ import { Link, useParams } from "wouter";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   ArrowLeft, Shield, ShieldCheck, ShieldX, Phone, Mail, Globe,
-  MapPin, FileText, ExternalLink, Download,
+  MapPin, FileText, ExternalLink, Download, Link2, CheckCircle2, AlertTriangle,
 } from "lucide-react";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
@@ -62,6 +64,10 @@ export default function MemberProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
 
+  const [linkEmail, setLinkEmail]     = useState("");
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkResult, setLinkResult]   = useState<{ ok: boolean; message: string } | null>(null);
+
   const token = sessionStorage.getItem("admin_token") || "";
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -83,6 +89,32 @@ export default function MemberProfilePage() {
       const { url } = await res.json();
       if (url) window.open(url, "_blank");
     } catch { window.alert("Could not generate download link. Please try again."); }
+  };
+
+  const handleLinkUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linkEmail.trim() || !id) return;
+    setLinkLoading(true);
+    setLinkResult(null);
+    try {
+      const res = await fetch(`${BASE_URL}/api/admin/businesses/${id}/link-user`, {
+        method: "PATCH",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: linkEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLinkResult({ ok: false, message: data.error ?? "Failed to link account." });
+      } else {
+        setLinkResult({ ok: true, message: `Linked to ${linkEmail.trim()} successfully.` });
+        setProfile((prev) => prev ? { ...prev, user_id: data.user_id ?? prev.user_id } : prev);
+        setLinkEmail("");
+      }
+    } catch (e: any) {
+      setLinkResult({ ok: false, message: e.message });
+    } finally {
+      setLinkLoading(false);
+    }
   };
 
   const checkMap = Object.fromEntries(
@@ -227,23 +259,72 @@ export default function MemberProfilePage() {
               </div>
             </div>
 
-            {/* Auth status */}
+            {/* Auth status + link-user */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="font-semibold text-sm mb-3">Account Status</h2>
-              <div className="flex items-center gap-3 text-sm">
+              <h2 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-primary" /> Member Login Account
+              </h2>
+
+              {/* Current link status */}
+              <div className="flex items-center gap-3 text-sm mb-4">
                 {profile.user_id ? (
                   <>
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full" />
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full shrink-0" />
                     <span className="text-muted-foreground">Linked to Supabase Auth account</span>
                     <code className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{profile.user_id.slice(0, 8)}…</code>
                   </>
                 ) : (
                   <>
-                    <span className="w-2 h-2 bg-muted-foreground rounded-full" />
+                    <span className="w-2 h-2 bg-amber-400 rounded-full shrink-0" />
                     <span className="text-muted-foreground">Not yet linked to a member login account</span>
                   </>
                 )}
               </div>
+
+              {/* Link / re-link form */}
+              <form onSubmit={handleLinkUser} className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1">
+                  <Label htmlFor="link-email" className="text-xs text-muted-foreground mb-1 block">
+                    {profile.user_id ? "Re-link to a different account" : "Link to member's login account"}
+                  </Label>
+                  <Input
+                    id="link-email"
+                    type="email"
+                    value={linkEmail}
+                    onChange={(e) => setLinkEmail(e.target.value)}
+                    placeholder="member@example.co.uk"
+                    className="h-9 text-sm"
+                    required
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={linkLoading || !linkEmail.trim()}
+                  className="sm:self-end h-9 whitespace-nowrap"
+                >
+                  {linkLoading ? "Linking…" : "Link account"}
+                </Button>
+              </form>
+
+              {/* Result feedback */}
+              {linkResult && (
+                <div className={`mt-3 flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${
+                  linkResult.ok
+                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                    : "bg-destructive/10 border border-destructive/20 text-destructive"
+                }`}>
+                  {linkResult.ok
+                    ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    : <AlertTriangle className="w-4 h-4 shrink-0" />
+                  }
+                  {linkResult.message}
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground mt-3">
+                The member must first sign up at <code className="text-xs bg-muted px-1 py-0.5 rounded">/signup</code> using the same email address before linking.
+              </p>
             </div>
           </div>
         )}
