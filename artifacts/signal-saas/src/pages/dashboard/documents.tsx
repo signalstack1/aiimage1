@@ -83,6 +83,17 @@ export default function DashboardDocuments() {
 
   useEffect(() => { loadDocs(); }, [token]);
 
+  /** Safe base64 encoding for large files — processes in 8 KB chunks to avoid stack overflow. */
+  const bufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    const CHUNK = 8192;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(binary);
+  };
+
   const handleFileChange = async (docType: DocSection["type"], file: File) => {
     if (!token) return;
     const mb = file.size / (1024 * 1024);
@@ -95,9 +106,9 @@ export default function DashboardDocuments() {
     setUploading((u) => ({ ...u, [docType]: true }));
 
     try {
-      // Convert file to base64
+      // Convert file to base64 using chunked encoding (safe for files up to 10 MB)
       const buffer = await file.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const base64 = bufferToBase64(buffer);
 
       const res = await fetch(`${BASE_URL}/api/member/documents`, {
         method: "POST",
