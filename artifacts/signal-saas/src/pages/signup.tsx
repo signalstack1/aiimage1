@@ -56,7 +56,7 @@ export default function SignupPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <Link href="/" className="flex items-center gap-2.5 justify-center mb-8">
-          <TVCLogo size={90} />
+          <TVCLogo size={117} />
           <span className="font-bold text-xl tracking-tight">Approved</span>
         </Link>
 
