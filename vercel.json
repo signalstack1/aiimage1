@@ -1,6 +1,6 @@
 {
-  "buildCommand": "pnpm --filter @workspace/signal-saas run build",
-  "outputDirectory": "artifacts/signal-saas/dist",
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "dist",
   "installCommand": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 pnpm install",
   "framework": null,
   "env": {
