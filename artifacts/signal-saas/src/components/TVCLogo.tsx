@@ -12,39 +12,36 @@ export function TVCLogo({ size = 32, className = "" }: TVCLogoProps) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      aria-label="TVC Secured"
+      aria-label="TVC Approved"
     >
-      {/* Dark navy background */}
       <rect width="120" height="120" rx="12" fill="#0d1b2e" />
 
-      {/* T — bold white */}
+      {/* T — bold white, left */}
       <text
-        x="8"
-        y="86"
+        x="4"
+        y="84"
         fontFamily="Arial Black, Impact, ui-sans-serif, sans-serif"
-        fontSize="62"
+        fontSize="52"
         fontWeight="900"
         fill="white"
       >T</text>
 
-      {/* Green checkmark — replaces the V */}
-      {/*
-        Bottom elbow point ~(57, 82)
-        Left short arm up-left to ~(38, 64)
-        Right long arm up-right to ~(76, 24) extending above letters
-        Stroke-width style: polygon approximation ~9px thick
-      */}
-      <polygon
-        points="34,64 42,56 58,76 76,20 84,26 60,84 42,84"
-        fill="#22c55e"
+      {/* Green checkmark — big, replaces V, right arm extends above cap height */}
+      <polyline
+        points="28,64 52,88 94,10"
+        stroke="#22c55e"
+        strokeWidth="18"
+        strokeLinecap="butt"
+        strokeLinejoin="miter"
+        fill="none"
       />
 
-      {/* C — bold white */}
+      {/* C — bold white, right */}
       <text
-        x="72"
-        y="86"
+        x="74"
+        y="84"
         fontFamily="Arial Black, Impact, ui-sans-serif, sans-serif"
-        fontSize="62"
+        fontSize="52"
         fontWeight="900"
         fill="white"
       >C</text>

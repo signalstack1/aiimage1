@@ -516,10 +516,8 @@ function PublicNav() {
     <header className="fixed top-0 inset-x-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-bold text-lg tracking-tight">{APP_CONFIG.appName}</span>
+          <TVCLogo size={32} />
+          <span className="font-bold text-lg tracking-tight">Approved</span>
         </Link>
         <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
           <Link href="/verify" className="hover:text-foreground transition-colors">Check a TVC Number</Link>
@@ -537,7 +535,7 @@ function PublicFooter() {
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <TVCLogo size={24} />
-          <span className="font-semibold text-foreground">{APP_CONFIG.appName}</span>
+          <span className="font-semibold text-foreground">Approved</span>
         </div>
         <div className="flex items-center gap-6">
           <Link href="/disclaimer" className="hover:text-foreground transition-colors">Disclaimer</Link>

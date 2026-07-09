@@ -80,7 +80,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <TVCLogo size={32} />
-            <span className="font-bold text-lg tracking-tight">{APP_CONFIG.appName}</span>
+            <span className="font-bold text-lg tracking-tight">Approved</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <Link href="/verify" className="hover:text-foreground transition-colors">Check a TVC Number</Link>
@@ -251,7 +251,7 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <TVCLogo size={24} />
-            <span className="font-semibold text-foreground">{APP_CONFIG.appName}</span>
+            <span className="font-semibold text-foreground">Approved</span>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/verify" className="hover:text-foreground transition-colors">Verify</Link>

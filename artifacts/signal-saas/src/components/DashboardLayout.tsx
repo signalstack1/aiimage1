@@ -58,7 +58,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="h-14 px-4 border-b border-border flex items-center gap-2.5">
           <Link href="/" className="flex items-center gap-2">
             <TVCLogo size={28} />
-            <span className="font-bold text-sm tracking-tight truncate">{APP_CONFIG.appName}</span>
+            <span className="font-bold text-sm tracking-tight truncate">Approved</span>
           </Link>
         </div>
 

@@ -57,7 +57,7 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         <Link href="/" className="flex items-center gap-2.5 justify-center mb-8">
           <TVCLogo size={36} />
-          <span className="font-bold text-xl tracking-tight">{APP_CONFIG.appName}</span>
+          <span className="font-bold text-xl tracking-tight">Approved</span>
         </Link>
 
         <div className="bg-card border border-border rounded-2xl p-8">
