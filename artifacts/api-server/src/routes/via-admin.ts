@@ -288,7 +288,7 @@ router.get("/admin/applications/:id", requireAdmin, async (req, res) => {
 
     const biz = (appl as any).businesses;
     const [{ data: docs }, { data: checks }, { data: notes }] = await Promise.all([
-      biz?.id ? supabase.from("documents").select("id, document_type, file_name, file_url, file_size_bytes, mime_type, uploaded_at").eq("business_id", biz.id).order("uploaded_at", { ascending: false }) : Promise.resolve({ data: [] }),
+      biz?.id ? supabase.from("documents").select("id, document_type, file_name, file_url, file_size_bytes, mime_type, uploaded_at, status, admin_notes, expiry_date").eq("business_id", biz.id).order("uploaded_at", { ascending: false }) : Promise.resolve({ data: [] }),
       biz?.id ? supabase.from("verification_checks").select("id, check_type, status, checked_at").eq("business_id", biz.id) : Promise.resolve({ data: [] }),
       supabase.from("admin_notes").select("id, body, created_at").eq("application_id", id).order("created_at"),
     ]);
@@ -584,6 +584,91 @@ router.patch("/admin/businesses/:id/link-user", requireAdmin, async (req, res) =
     return ok(res, { ok: true, linked: true, user_id: user.id });
   } catch (e: any) {
     logger.error({ err: e }, "PATCH /admin/businesses/:id/link-user error");
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// PATCH /api/admin/documents/:id — approve / reject / expire a document
+// Body: { status, admin_notes?, expiry_date?, reviewed_by? }
+// =============================================================================
+router.patch("/admin/documents/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { status, admin_notes, expiry_date, reviewed_by } = req.body || {};
+
+  const validStatuses = ["pending_review", "approved", "rejected", "expired"];
+  if (status && !validStatuses.includes(status)) {
+    return err(res, `status must be one of: ${validStatuses.join(", ")}`, 400);
+  }
+
+  if (!isSupabaseConfigured()) return ok(res, { ok: true });
+
+  try {
+    const updates: Record<string, any> = {};
+    if (status !== undefined) {
+      updates.status = status;
+      updates.reviewed_at = new Date().toISOString();
+      updates.reviewed_by = reviewed_by || "admin";
+    }
+    if (admin_notes !== undefined) updates.admin_notes = admin_notes;
+    if (expiry_date !== undefined) updates.expiry_date = expiry_date || null;
+
+    const { data, error } = await supabase
+      .from("documents")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return ok(res, data);
+  } catch (e: any) {
+    logger.error({ err: e }, "PATCH /admin/documents/:id error");
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// POST /api/admin/applications/:id/request-documents
+// Body: { message? } — sends a notification to the member requesting more docs
+// =============================================================================
+router.post("/admin/applications/:id/request-documents", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { message } = req.body || {};
+
+  if (!isSupabaseConfigured()) return ok(res, { ok: true });
+
+  try {
+    // Look up the application to find the business_id
+    const { data: appl, error: applErr } = await supabase
+      .from("applications")
+      .select("id, business_id, applicant_name")
+      .eq("id", id)
+      .single();
+
+    if (applErr || !appl) return err(res, "Application not found", 404);
+
+    // Look up business to find the user_id (for the notification target)
+    const { data: biz } = await supabase
+      .from("businesses")
+      .select("id, user_id")
+      .eq("id", appl.business_id)
+      .single();
+
+    const notifMessage = message?.trim() ||
+      "The VIA team requires additional supporting documents to progress your verification. Please log in to your dashboard and upload the requested files.";
+
+    await supabase.from("notifications").insert({
+      recipient_type: "member",
+      business_id: appl.business_id,
+      title: "Additional documents required",
+      body: notifMessage,
+      read: false,
+    });
+
+    return ok(res, { ok: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "POST /admin/applications/:id/request-documents error");
     return err(res, e.message);
   }
 });

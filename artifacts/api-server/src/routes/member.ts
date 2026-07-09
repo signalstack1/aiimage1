@@ -164,10 +164,19 @@ router.get("/member/documents", requireMember, async (req: AuthedRequest, res) =
 
     const { data, error } = await supabase
       .from("documents")
-      .select("id, document_type, file_name, file_url, file_size_bytes, mime_type, uploaded_at")
+      .select("id, document_type, file_name, file_url, file_size_bytes, mime_type, uploaded_at, status, admin_notes, expiry_date, reviewed_at")
       .eq("business_id", biz.id)
       .order("uploaded_at", { ascending: false });
 
+    // If columns don't exist yet (migration pending), fall back to base columns
+    if (error && (error.code === "42703" || error.message?.includes("column"))) {
+      const { data: fallback } = await supabase
+        .from("documents")
+        .select("id, document_type, file_name, file_url, file_size_bytes, mime_type, uploaded_at")
+        .eq("business_id", biz.id)
+        .order("uploaded_at", { ascending: false });
+      return ok(res, (fallback || []).map((d: any) => ({ ...d, status: "pending_review", admin_notes: null, expiry_date: null })));
+    }
     if (error) return err(res, error.message);
     return ok(res, data || []);
   } catch (e: any) {
@@ -181,24 +190,25 @@ router.get("/member/documents", requireMember, async (req: AuthedRequest, res) =
 // Body: { file_data: base64, mime_type, file_name, document_type }
 // =============================================================================
 router.post("/member/documents", requireMember, async (req: AuthedRequest, res) => {
-  const { file_data, mime_type, file_name, document_type = "general" } = req.body || {};
+  const { file_data, mime_type, file_name, document_type = "general", application_id } = req.body || {};
 
   if (!file_data || !mime_type || !file_name) {
     return err(res, "file_data (base64), mime_type, and file_name are required", 400);
   }
 
-  const validTypes = ["general", "insurance", "accreditation"];
-  if (!validTypes.includes(document_type)) {
-    return err(res, `document_type must be one of: ${validTypes.join(", ")}`, 400);
-  }
+  const validTypes = ["general", "insurance", "accreditation", "proof_of_address", "other"];
+  const resolvedType = validTypes.includes(document_type) ? document_type : "general";
 
   if (!isSupabaseConfigured()) {
     return ok(res, {
       id: `mock-doc-${Date.now()}`,
-      document_type,
+      document_type: resolvedType,
       file_name,
       file_url: "https://placehold.co/400x300?text=Document",
       mime_type,
+      status: "pending_review",
+      admin_notes: null,
+      expiry_date: null,
       uploaded_at: new Date().toISOString(),
     }, 201);
   }
@@ -216,7 +226,7 @@ router.post("/member/documents", requireMember, async (req: AuthedRequest, res) 
     await ensureDocBucket();
 
     const ext = file_name.split(".").pop()?.toLowerCase() || "pdf";
-    const storagePath = `${req.userId}/${document_type}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const storagePath = `${req.userId}/${resolvedType}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const buffer = Buffer.from(file_data as string, "base64");
     const fileSize = buffer.byteLength;
 
@@ -233,21 +243,35 @@ router.post("/member/documents", requireMember, async (req: AuthedRequest, res) 
 
     const file_url = signedData?.signedUrl ?? storagePath;
 
-    // Store metadata in documents table
-    const { data: doc, error: docErr } = await supabase
+    // Store metadata in documents table — try with status column, fall back if migration pending
+    let doc: any;
+    const insertBase = {
+      business_id: biz.id,
+      application_id: application_id || null,
+      document_type: resolvedType,
+      file_name,
+      file_url: storagePath,
+      file_size_bytes: fileSize,
+      mime_type,
+    };
+    const { data: docWithStatus, error: docErr } = await supabase
       .from("documents")
-      .insert({
-        business_id: biz.id,
-        document_type,
-        file_name,
-        file_url: storagePath, // Store path, not signed URL
-        file_size_bytes: fileSize,
-        mime_type,
-      })
+      .insert({ ...insertBase, status: "pending_review" })
       .select()
       .single();
 
-    if (docErr) throw docErr;
+    if (docErr && (docErr.code === "42703" || docErr.message?.includes("column"))) {
+      const { data: docFallback, error: docErr2 } = await supabase
+        .from("documents")
+        .insert(insertBase)
+        .select()
+        .single();
+      if (docErr2) throw docErr2;
+      doc = { ...docFallback, status: "pending_review", admin_notes: null, expiry_date: null };
+    } else {
+      if (docErr) throw docErr;
+      doc = docWithStatus;
+    }
 
     return ok(res, { ...doc, file_url }, 201);
   } catch (e: any) {

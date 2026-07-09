@@ -7,9 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, CheckCircle2, XCircle, Clock, FileText,
   ExternalLink, Star, Send, RefreshCw, UserCheck, AlertTriangle,
+  CalendarDays, MessageSquarePlus, ThumbsUp, ThumbsDown, Ban,
 } from "lucide-react";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
@@ -38,7 +40,12 @@ const STATUS_STYLE: Record<string, string> = {
 
 interface Check { id?: string; check_type: string; status: "verified"|"unverified"|"pending"; checked_at: string|null }
 interface Note  { id: string; body: string; created_at: string }
-interface Doc   { id: string; document_type: string; file_name: string; file_size_bytes: number|null; uploaded_at: string }
+interface Doc   {
+  id: string; document_type: string; file_name: string;
+  file_size_bytes: number|null; uploaded_at: string;
+  status: "pending_review"|"approved"|"rejected"|"expired";
+  admin_notes: string|null; expiry_date: string|null;
+}
 interface AppDetail {
   id: string; status: string; priority: boolean;
   applicant_name: string; applicant_email: string; applicant_phone: string|null; message: string|null;
@@ -110,6 +117,12 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
   const [viaAutoLoading, setViaAutoLoading] = useState(false);
   const [viaError, setViaError]         = useState<string|null>(null);
   const [viaSuccess, setViaSuccess]     = useState(false);
+  const [docNotes, setDocNotes]         = useState<Record<string, string>>({});
+  const [docExpiry, setDocExpiry]       = useState<Record<string, string>>({});
+  const [docSaving, setDocSaving]       = useState<Record<string, boolean>>({});
+  const [requestingDocs, setRequestingDocs] = useState(false);
+  const [requestMsg, setRequestMsg]     = useState("");
+  const [requestSuccess, setRequestSuccess] = useState(false);
   const token = sessionStorage.getItem("admin_token") || "";
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -207,6 +220,51 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
     if (url) window.open(url, "_blank", "noopener");
   };
 
+  const saveDocReview = async (docId: string, status: string) => {
+    setDocSaving((s) => ({ ...s, [docId]: true }));
+    try {
+      await fetch(`${BASE_URL}/api/admin/documents/${docId}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          status,
+          admin_notes: docNotes[docId] ?? undefined,
+          expiry_date: docExpiry[docId] ?? undefined,
+        }),
+      });
+      setApp((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          documents: prev.documents.map((d) =>
+            d.id === docId
+              ? { ...d, status: status as Doc["status"], admin_notes: docNotes[docId] ?? d.admin_notes, expiry_date: docExpiry[docId] ?? d.expiry_date }
+              : d
+          ),
+        };
+      });
+    } catch { } finally {
+      setDocSaving((s) => ({ ...s, [docId]: false }));
+    }
+  };
+
+  const handleRequestDocs = async () => {
+    if (!app) return;
+    setRequestingDocs(true);
+    try {
+      await fetch(`${BASE_URL}/api/admin/applications/${app.id}/request-documents`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ message: requestMsg.trim() || undefined }),
+      });
+      setRequestSuccess(true);
+      setRequestMsg("");
+      setTimeout(() => setRequestSuccess(false), 4000);
+    } catch { } finally {
+      setRequestingDocs(false);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -301,27 +359,136 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
             )}
             {/* Documents */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-4">
-                Documents ({app.documents.length})
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                  Documents ({app.documents.length})
+                </h2>
+              </div>
+
+              {/* Request more documents */}
+              <div className="mb-4 border border-border rounded-xl p-3 bg-background space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Request additional documents</p>
+                <textarea
+                  value={requestMsg}
+                  onChange={(e) => setRequestMsg(e.target.value)}
+                  rows={2}
+                  placeholder="Describe what's needed (optional — a default message will be sent if left blank)…"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" disabled={requestingDocs} onClick={handleRequestDocs} className="h-7 text-xs">
+                    <MessageSquarePlus className="w-3 h-3 mr-1.5" />
+                    {requestingDocs ? "Sending…" : "Send request to member"}
+                  </Button>
+                  {requestSuccess && <span className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Sent</span>}
+                </div>
+              </div>
+
               {app.documents.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
               ) : (
-                <div className="space-y-2">
-                  {app.documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between gap-2 p-2.5 bg-background border border-border rounded-lg">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium truncate">{doc.file_name}</p>
-                          <p className="text-[10px] text-muted-foreground capitalize">{doc.document_type}</p>
+                <div className="space-y-3">
+                  {app.documents.map((doc) => {
+                    const isSaving = docSaving[doc.id] ?? false;
+                    const docLabel = {
+                      insurance: "Public Liability Insurance",
+                      accreditation: "Trade Accreditation",
+                      proof_of_address: "Proof of Address",
+                      general: "General Document",
+                      other: "Other",
+                    }[doc.document_type] ?? doc.document_type;
+
+                    const statusBadge = {
+                      pending_review: <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 text-[10px] gap-1"><Clock className="w-2.5 h-2.5" />Pending</Badge>,
+                      approved:       <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px] gap-1"><CheckCircle2 className="w-2.5 h-2.5" />Approved</Badge>,
+                      rejected:       <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-[10px] gap-1"><XCircle className="w-2.5 h-2.5" />Rejected</Badge>,
+                      expired:        <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px] gap-1"><CalendarDays className="w-2.5 h-2.5" />Expired</Badge>,
+                    }[doc.status] ?? null;
+
+                    return (
+                      <div key={doc.id} className="border border-border rounded-xl overflow-hidden">
+                        {/* Doc header row */}
+                        <div className="flex items-center justify-between gap-2 p-2.5 bg-background">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium truncate">{doc.file_name}</p>
+                              <p className="text-[10px] text-muted-foreground">{docLabel}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {statusBadge}
+                            <Button size="sm" variant="ghost" onClick={() => viewDoc(doc.id)} className="h-6 px-2">
+                              <ExternalLink className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Review controls */}
+                        <div className="border-t border-border p-3 bg-card space-y-2.5">
+                          {/* Admin notes */}
+                          <textarea
+                            value={docNotes[doc.id] ?? (doc.admin_notes || "")}
+                            onChange={(e) => setDocNotes((n) => ({ ...n, [doc.id]: e.target.value }))}
+                            rows={2}
+                            placeholder="Admin notes / rejection reason…"
+                            className="w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                          />
+                          {/* Expiry date */}
+                          <div className="flex items-center gap-2">
+                            <CalendarDays className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <Input
+                              type="date"
+                              value={docExpiry[doc.id] ?? (doc.expiry_date || "")}
+                              onChange={(e) => setDocExpiry((x) => ({ ...x, [doc.id]: e.target.value }))}
+                              className="h-7 text-xs flex-1"
+                            />
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">Expiry date</span>
+                          </div>
+                          {/* Action buttons */}
+                          <div className="flex flex-wrap gap-1.5">
+                            <Button
+                              size="sm"
+                              disabled={isSaving}
+                              onClick={() => saveDocReview(doc.id, "approved")}
+                              className="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+                            >
+                              <ThumbsUp className="w-3 h-3 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={isSaving}
+                              onClick={() => saveDocReview(doc.id, "rejected")}
+                              className="h-7 px-2.5 text-xs bg-red-600 hover:bg-red-700 text-white border-0"
+                            >
+                              <ThumbsDown className="w-3 h-3 mr-1" />
+                              Reject
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isSaving}
+                              onClick={() => saveDocReview(doc.id, "expired")}
+                              className="h-7 px-2.5 text-xs"
+                            >
+                              <Ban className="w-3 h-3 mr-1" />
+                              Expired
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isSaving}
+                              onClick={() => saveDocReview(doc.id, doc.status)}
+                              className="h-7 px-2.5 text-xs ml-auto"
+                            >
+                              {isSaving ? "Saving…" : "Save notes"}
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                      <Button size="sm" variant="ghost" onClick={() => viewDoc(doc.id)} className="h-6 px-2 shrink-0">
-                        <ExternalLink className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

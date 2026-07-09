@@ -5,6 +5,27 @@ const PATCHES = [
   `ALTER TABLE products ADD CONSTRAINT products_interval_check
      CHECK (interval IN ('one-time', 'weekly', 'monthly', 'quarterly', 'yearly', 'lifetime'))`,
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url TEXT`,
+
+  // Documents table — add review/status columns
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending_review'`,
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS admin_notes TEXT`,
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS expiry_date DATE`,
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`,
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS reviewed_by TEXT`,
+
+  // Expand document_type CHECK constraint to include proof_of_address and other
+  `DO $$ BEGIN
+    ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_document_type_check;
+    ALTER TABLE documents ADD CONSTRAINT documents_document_type_check
+      CHECK (document_type IN ('general', 'insurance', 'accreditation', 'proof_of_address', 'other'));
+  EXCEPTION WHEN OTHERS THEN NULL; END $$`,
+
+  // Add status CHECK constraint
+  `DO $$ BEGIN
+    ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_status_check;
+    ALTER TABLE documents ADD CONSTRAINT documents_status_check
+      CHECK (status IN ('pending_review', 'approved', 'rejected', 'expired'));
+  EXCEPTION WHEN OTHERS THEN NULL; END $$`,
 ];
 
 async function runViaManagementApi(projectRef: string, pat: string): Promise<void> {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   ShieldCheck, CheckCircle2, Award, Star, Hash,
-  Sticker, ArrowRight, ExternalLink,
+  Sticker, ArrowRight, ExternalLink, Upload, FileText, AlertCircle, MapPin, HelpCircle,
 } from "lucide-react";
 import { APP_CONFIG } from "@/config/app";
 
@@ -102,13 +102,62 @@ const TRADE_TYPES = [
 
 export default function JoinPage() {
   const [form, setForm] = useState<ApplicationForm>(EMPTY_FORM);
-  const [submitted, setSubmitted] = useState(false);
+  const [step, setStep] = useState<"form" | "documents" | "done">("form");
+  const [applicationId, setApplicationId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [joinDocs, setJoinDocs] = useState<Record<string, Array<{ id: string; file_name: string }>>>({});
+  const [joinUploading, setJoinUploading] = useState<Record<string, boolean>>({});
+  const [joinErrors, setJoinErrors] = useState<Record<string, string>>({});
+  const joinInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const update = (field: keyof ApplicationForm) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const bufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    const CHUNK = 8192;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(binary);
+  };
+
+  const handleJoinDocUpload = async (docType: string, file: File) => {
+    if (!applicationId) return;
+    const mb = file.size / (1024 * 1024);
+    if (mb > 10) {
+      setJoinErrors((e) => ({ ...e, [docType]: `File too large (${mb.toFixed(1)} MB). Max 10 MB.` }));
+      return;
+    }
+    setJoinErrors((e) => ({ ...e, [docType]: "" }));
+    setJoinUploading((u) => ({ ...u, [docType]: true }));
+    try {
+      const buffer = await file.arrayBuffer();
+      const base64 = bufferToBase64(buffer);
+      const res = await fetch(`${BASE_URL}/api/via/applications/${applicationId}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_data: base64, mime_type: file.type, file_name: file.name, document_type: docType }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Upload failed");
+      }
+      const doc = await res.json();
+      setJoinDocs((prev) => ({
+        ...prev,
+        [docType]: [...(prev[docType] || []), { id: doc.id, file_name: file.name }],
+      }));
+    } catch (e: any) {
+      setJoinErrors((prev) => ({ ...prev, [docType]: e.message || "Upload failed" }));
+    } finally {
+      setJoinUploading((u) => ({ ...u, [docType]: false }));
+      if (joinInputRefs.current[docType]) joinInputRefs.current[docType]!.value = "";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +177,9 @@ export default function JoinPage() {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || "Submission failed");
       }
-      setSubmitted(true);
+      const data = await res.json();
+      setApplicationId(data.id || null);
+      setStep("documents");
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -136,7 +187,110 @@ export default function JoinPage() {
     }
   };
 
-  if (submitted) {
+  const JOIN_DOC_SECTIONS = [
+    { type: "insurance",        icon: ShieldCheck, label: "Public Liability Insurance",   desc: "Certificate of public liability insurance. PDF or image, max 10 MB." },
+    { type: "accreditation",    icon: Award,       label: "Trade Accreditations",          desc: "Gas Safe, NICEIC, NAPIT, trust mark or any other trade body certificate." },
+    { type: "proof_of_address", icon: MapPin,       label: "Proof of Business Address",    desc: "Utility bill, bank statement, or council letter dated within 3 months." },
+    { type: "other",            icon: HelpCircle,  label: "Other Supporting Documents",   desc: "Companies House certificate, ID, or any other relevant evidence." },
+  ] as const;
+
+  if (step === "documents") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicNav />
+        <div className="flex-1 px-6 py-16 max-w-2xl mx-auto w-full">
+          <div className="text-center mb-8">
+            <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="text-2xl font-extrabold mb-2">Application received!</h1>
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-md mx-auto">
+              Upload your verification documents below to speed up the process. You can also skip and upload these later from your member dashboard.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {JOIN_DOC_SECTIONS.map(({ type, icon: Icon, label, desc }) => {
+              const uploaded = joinDocs[type] || [];
+              const isUploading = joinUploading[type] ?? false;
+              return (
+                <div key={type} className="bg-card border border-border rounded-2xl p-5">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">{label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isUploading}
+                      onClick={() => joinInputRefs.current[type]?.click()}
+                      className="shrink-0"
+                    >
+                      <Upload className="w-3.5 h-3.5 mr-1.5" />
+                      {isUploading ? "Uploading…" : "Upload"}
+                    </Button>
+                    <input
+                      ref={(el) => { joinInputRefs.current[type] = el; }}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJoinDocUpload(type, f); }}
+                    />
+                  </div>
+                  {joinErrors[type] && (
+                    <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2 mb-2">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      {joinErrors[type]}
+                    </div>
+                  )}
+                  {uploaded.length > 0 && (
+                    <div className="space-y-1.5 mt-2">
+                      {uploaded.map((d) => (
+                        <div key={d.id} className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg px-3 py-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate font-medium">{d.file_name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-6">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setStep("done")}
+            >
+              Skip — I'll upload later
+            </Button>
+            <Button
+              className="flex-1 gradient-brand text-white border-0 hover:opacity-90 font-semibold"
+              onClick={() => setStep("done")}
+            >
+              Done uploading
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            Documents are stored securely and only visible to VIA verifiers. PDF, JPG, PNG and WebP accepted (max 10 MB each).
+          </p>
+        </div>
+        <PublicFooter />
+      </div>
+    );
+  }
+
+  if (step === "done") {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <PublicNav />

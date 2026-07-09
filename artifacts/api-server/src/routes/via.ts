@@ -147,6 +147,78 @@ router.post("/via/apply", async (req, res) => {
   }
 });
 
+// =============================================================================
+// POST /api/via/applications/:applicationId/documents — public doc upload
+// Used during the join flow before the member has an account.
+// applicationId acts as a semi-secret token (UUID, unguessable).
+// Body: { file_data: base64, mime_type, file_name, document_type }
+// =============================================================================
+const JOIN_DOC_BUCKET = "member-documents";
+const JOIN_VALID_TYPES = ["general", "insurance", "accreditation", "proof_of_address", "other"];
+
+router.post("/via/applications/:applicationId/documents", async (req, res) => {
+  const { applicationId } = req.params;
+  const { file_data, mime_type, file_name, document_type = "general" } = req.body || {};
+
+  if (!file_data || !mime_type || !file_name) {
+    return err(res, "file_data (base64), mime_type, and file_name are required", 400);
+  }
+
+  const resolvedType = JOIN_VALID_TYPES.includes(document_type) ? document_type : "general";
+
+  if (!isSupabaseConfigured()) {
+    return ok(res, {
+      id: `mock-join-doc-${Date.now()}`,
+      document_type: resolvedType,
+      file_name,
+      status: "pending_review",
+      uploaded_at: new Date().toISOString(),
+    }, 201);
+  }
+
+  try {
+    // Verify the application exists and get business_id
+    const { data: appl, error: applErr } = await supabase
+      .from("applications")
+      .select("id, business_id")
+      .eq("id", applicationId)
+      .single();
+
+    if (applErr || !appl) return err(res, "Application not found", 404);
+
+    const ext = file_name.split(".").pop()?.toLowerCase() || "pdf";
+    const storagePath = `applications/${applicationId}/${resolvedType}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const buffer = Buffer.from(file_data as string, "base64");
+
+    const { error: uploadErr } = await supabase.storage
+      .from(JOIN_DOC_BUCKET)
+      .upload(storagePath, buffer, { contentType: mime_type, upsert: false });
+
+    if (uploadErr) throw uploadErr;
+
+    const { data: doc, error: docErr } = await supabase
+      .from("documents")
+      .insert({
+        business_id: appl.business_id,
+        application_id: applicationId,
+        document_type: resolvedType,
+        file_name,
+        file_url: storagePath,
+        file_size_bytes: buffer.byteLength,
+        mime_type,
+        status: "pending_review",
+      })
+      .select("id, document_type, file_name, file_size_bytes, status, uploaded_at")
+      .single();
+
+    if (docErr) throw docErr;
+    return ok(res, doc, 201);
+  } catch (e: any) {
+    logger.error({ err: e }, "POST /via/applications/:id/documents error");
+    return err(res, e.message);
+  }
+});
+
 // GET /api/payment-links — public, returns all active payment links by slug
 router.get("/payment-links", async (_req, res) => {
   if (!isSupabaseConfigured()) {

@@ -66,15 +66,41 @@ CREATE TABLE IF NOT EXISTS documents (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   business_id     UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   application_id  UUID REFERENCES applications(id) ON DELETE SET NULL,
-  document_type   TEXT NOT NULL DEFAULT 'general'            -- general | insurance | accreditation
-                    CHECK (document_type IN ('general', 'insurance', 'accreditation')),
+  document_type   TEXT NOT NULL DEFAULT 'general'
+                    CHECK (document_type IN ('general', 'insurance', 'accreditation', 'proof_of_address', 'other')),
   file_name       TEXT NOT NULL,
-  file_url        TEXT NOT NULL,                             -- Supabase Storage public URL
+  file_url        TEXT NOT NULL,                             -- Supabase Storage path (private bucket)
   file_size_bytes BIGINT,
   mime_type       TEXT,
+  status          TEXT NOT NULL DEFAULT 'pending_review'
+                    CHECK (status IN ('pending_review', 'approved', 'rejected', 'expired')),
+  admin_notes     TEXT,                                      -- rejection reason or admin comment
+  expiry_date     DATE,                                      -- for insurance/accreditation expiry
+  reviewed_at     TIMESTAMPTZ,
+  reviewed_by     TEXT,                                      -- admin username who reviewed
   uploaded_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ── documents migration (for existing databases) ──────────────────────────────
+-- Run these if you set up the DB before this schema update:
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending_review';
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS admin_notes TEXT;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS expiry_date DATE;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS reviewed_by TEXT;
+-- Expand document_type CHECK constraint (drop old, add new):
+DO $$ BEGIN
+  ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_document_type_check;
+  ALTER TABLE documents ADD CONSTRAINT documents_document_type_check
+    CHECK (document_type IN ('general', 'insurance', 'accreditation', 'proof_of_address', 'other'));
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+-- Expand status CHECK constraint:
+DO $$ BEGIN
+  ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_status_check;
+  ALTER TABLE documents ADD CONSTRAINT documents_status_check
+    CHECK (status IN ('pending_review', 'approved', 'rejected', 'expired'));
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 -- ── payment_links ─────────────────────────────────────────────────────────────
 -- Admin-configurable payment redirect URLs. No Stripe logic — URL only.
