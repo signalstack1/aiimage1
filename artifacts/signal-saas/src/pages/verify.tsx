@@ -304,7 +304,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
       <header className="fixed top-0 inset-x-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <TVCLogo size={56} />
+            <TVCLogo size={84} />
             <span className="font-bold text-lg tracking-tight">Approved</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
