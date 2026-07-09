@@ -581,6 +581,19 @@ router.patch("/admin/businesses/:id/link-user", requireAdmin, async (req, res) =
     if (!user) return err(res, `No Supabase Auth user found with email: ${email}`, 404);
     const { error } = await supabase.from("businesses").update({ user_id: user.id }).eq("id", id);
     if (error) throw error;
+
+    // Send a welcome notification to the member (best-effort, non-fatal)
+    try {
+      await supabase.from("notifications").insert({
+        business_id: id,
+        recipient_type: "member",
+        title: "Your account is ready",
+        body: "Your account is ready — log in to view your dashboard.",
+      });
+    } catch (notifErr: any) {
+      logger.warn({ err: notifErr }, "Failed to insert welcome notification after link-user");
+    }
+
     return ok(res, { ok: true, linked: true, user_id: user.id });
   } catch (e: any) {
     logger.error({ err: e }, "PATCH /admin/businesses/:id/link-user error");
