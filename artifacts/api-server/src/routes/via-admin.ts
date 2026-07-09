@@ -369,6 +369,62 @@ router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
 });
 
 // =============================================================================
+// POST /api/admin/applications/:id/mark-paid — confirm payment, move to Pending Review
+// =============================================================================
+router.post("/admin/applications/:id/mark-paid", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { payment_notes } = req.body || {};
+
+  if (!isSupabaseConfigured()) {
+    return ok(res, { ok: true, id, status: "pending" });
+  }
+
+  try {
+    const { error } = await supabase
+      .from("applications")
+      .update({ status: "pending", updated_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) throw error;
+
+    // Record payment note as an admin note (best-effort)
+    if ((payment_notes as string | undefined)?.trim()) {
+      try {
+        await supabase.from("admin_notes").insert({
+          application_id: id,
+          body: `Payment confirmed. Notes: ${(payment_notes as string).trim()}`,
+        });
+      } catch { /* non-fatal */ }
+    }
+
+    // Notify member (best-effort)
+    try {
+      const { data: appl } = await supabase
+        .from("applications")
+        .select("businesses(user_id)")
+        .eq("id", id)
+        .single();
+      const bizAny = appl?.businesses as any;
+      const userId = bizAny?.user_id;
+      if (userId) {
+        await supabase.from("notifications").insert({
+          user_id: userId,
+          type: "payment_confirmed",
+          title: "Payment confirmed",
+          body: "Your payment has been confirmed. We will begin your TVC verification shortly.",
+          recipient_type: "member",
+        });
+      }
+    } catch { /* non-fatal */ }
+
+    return ok(res, { ok: true, id, status: "pending" });
+  } catch (e: any) {
+    logger.error({ err: e }, "POST /admin/applications/:id/mark-paid error");
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
 // ADMIN NOTES
 // =============================================================================
 

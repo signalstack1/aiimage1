@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ShieldCheck, User, FileText, Award, Bell, CreditCard,
-  CheckCircle2, XCircle, Clock, ArrowRight, AlertTriangle,
+  CheckCircle2, XCircle, Clock, ArrowRight, AlertTriangle, ExternalLink,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,11 +24,12 @@ const CHECK_LABELS: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   const cfg: Record<string, { cls: string; label: string }> = {
-    approved:  { cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", label: "TVC Verified ✓" },
-    in_review: { cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",      label: "In Review" },
-    pending:   { cls: "bg-sky-500/15 text-sky-400 border-sky-500/30",             label: "Pending" },
-    rejected:  { cls: "bg-red-500/15 text-red-400 border-red-500/30",             label: "Rejected" },
-    expired:   { cls: "bg-muted text-muted-foreground border-border",             label: "Expired" },
+    approved:        { cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", label: "TVC Verified ✓" },
+    in_review:       { cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",       label: "In Review" },
+    pending:         { cls: "bg-sky-500/15 text-sky-400 border-sky-500/30",              label: "Pending Review" },
+    pending_payment: { cls: "bg-orange-500/15 text-orange-400 border-orange-500/30",    label: "Pending Payment" },
+    rejected:        { cls: "bg-red-500/15 text-red-400 border-red-500/30",             label: "Rejected" },
+    expired:         { cls: "bg-muted text-muted-foreground border-border",             label: "Expired" },
   };
   const c = cfg[status] ?? cfg.pending;
   return <Badge className={`border ${c.cls} text-sm px-3 py-1 font-semibold`}>{c.label}</Badge>;
@@ -46,6 +47,7 @@ export default function DashboardHome() {
   const { member, fetchWithAuth } = useAuth();
   const [checks, setChecks] = useState<Check[]>([]);
   const [notifCount, setNotifCount] = useState(0);
+  const [paymentLink, setPaymentLink] = useState<string | null>(null);
 
   useEffect(() => {
     fetchWithAuth(`${BASE_URL}/api/member/verification-checks`)
@@ -56,6 +58,16 @@ export default function DashboardHome() {
     fetchWithAuth(`${BASE_URL}/api/member/notifications`)
       .then(r => r.ok ? r.json() : [])
       .then(data => { if (Array.isArray(data)) setNotifCount(data.filter((n: any) => !n.is_read).length); })
+      .catch(() => {});
+
+    fetch(`${BASE_URL}/api/payment-links`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) {
+          const pl = data.find((l: any) => l.slug === "via-membership");
+          if (pl?.url) setPaymentLink(pl.url);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -111,6 +123,41 @@ export default function DashboardHome() {
             <div>
               <p className="text-sm font-semibold text-amber-400 mb-1">Account not linked to an application</p>
               <p className="text-sm text-muted-foreground">Your account hasn't been linked to a TVC application yet. If you've already applied, contact us at {APP_CONFIG_EMAIL}.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Pending payment banner */}
+        {status === "pending_payment" && (
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-5 mb-6">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-orange-400 mb-1">Payment confirmation pending</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Your account has been created. We are waiting for payment confirmation before your verification begins. If you haven't paid yet, please use the button below.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 pl-8">
+              {paymentLink ? (
+                <Button
+                  onClick={() => window.open(paymentLink, "_blank", "noopener")}
+                  className="gradient-brand text-white border-0 hover:opacity-90 font-semibold"
+                  size="sm"
+                >
+                  Complete Payment — £20/month
+                  <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">Payment link loading…</p>
+              )}
+              <a
+                href={`mailto:${APP_CONFIG_EMAIL}`}
+                className="text-sm text-primary hover:underline flex items-center"
+              >
+                Contact support
+              </a>
             </div>
           </div>
         )}

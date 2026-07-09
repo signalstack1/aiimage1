@@ -8,25 +8,31 @@ import { ClipboardList, ChevronRight, Star } from "lucide-react";
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 
 const STATUS_TABS = [
-  { value: "all",       label: "All" },
-  { value: "pending",   label: "Pending" },
-  { value: "in_review", label: "In Review" },
-  { value: "approved",  label: "Approved" },
-  { value: "rejected",  label: "Rejected" },
-  { value: "expired",   label: "Expired" },
+  { value: "all",             label: "All" },
+  { value: "pending_payment", label: "Pending Payment" },
+  { value: "pending",         label: "Pending Review" },
+  { value: "in_review",       label: "In Review" },
+  { value: "approved",        label: "Approved" },
+  { value: "rejected",        label: "Rejected" },
+  { value: "expired",         label: "Expired" },
 ];
 
 const STATUS_STYLE: Record<string, string> = {
-  pending:   "bg-sky-500/15 text-sky-400 border-sky-500/30",
-  in_review: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  approved:  "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  rejected:  "bg-red-500/15 text-red-400 border-red-500/30",
-  expired:   "bg-muted text-muted-foreground border-border",
+  pending_payment: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  pending:         "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  in_review:       "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  approved:        "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  rejected:        "bg-red-500/15 text-red-400 border-red-500/30",
+  expired:         "bg-muted text-muted-foreground border-border",
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending", in_review: "In Review", approved: "Approved",
-  rejected: "Rejected", expired: "Expired",
+  pending_payment: "Pending Payment",
+  pending:         "Pending Review",
+  in_review:       "In Review",
+  approved:        "Approved",
+  rejected:        "Rejected",
+  expired:         "Expired",
 };
 
 interface Application {

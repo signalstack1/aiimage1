@@ -1,0 +1,143 @@
+Update the TVC Approved account and payment flow.
+
+Important:
+We are NOT using Stripe API/webhooks.
+We are using the existing external payment-link system.
+
+Critical rule:
+There must be no normal public registration/signup route that allows a user to create an account without starting the TVC purchase/application flow.
+
+Remove or hide any generic register buttons, signup pages, free account creation pages, or template registration routes that let users register without purchasing/applying first.
+
+Do not delete the code if it may be useful later.
+Disable/hide it safely.
+
+Allowed user flow only:
+Join TVC Approved → Application form → Account created → Payment link → Member dashboard.
+
+Required account flow:
+
+1. User applies first
+- User fills out the TVC application form.
+- User creates login details during application:
+  - email
+  - password
+  - business name
+  - contact name
+  - phone
+  - trade type
+  - town/city
+- Create Supabase Auth user immediately.
+- Create linked profile/business/application records in Supabase.
+- Set application status to:
+  “Pending Payment”
+
+2. After account creation
+- Redirect user to the external payment link configured by admin.
+- Show clear message:
+  “Your TVC account has been created. Complete payment to begin verification.”
+
+3. Login after purchase
+- User must be able to return to the site and log in using the email/password they created.
+- After login, redirect them to the member dashboard.
+- Dashboard should show their current status:
+  Pending Payment / Pending Review / In Review / Approved / Rejected / Expired
+
+4. Manual payment confirmation
+Because we use external payment links, admin must manually confirm payment.
+
+Admin dashboard needs:
+- Applications with status “Pending Payment”
+- Button: “Mark as Paid”
+- Button: “Move to Pending Review”
+- Payment notes field
+- Payment confirmed date
+- Payment confirmed by admin
+
+Once admin marks paid:
+- Change application/member status from Pending Payment to Pending Review.
+- Unlock document review/verification process.
+
+5. Member dashboard access rules
+Members should be able to log in even if payment is not yet confirmed.
+
+If status is Pending Payment, dashboard should show:
+“Your account has been created. We are waiting for payment confirmation before verification begins.”
+
+Also show:
+- Payment button again
+- Contact support link
+- Upload documents if allowed
+
+6. Document uploads
+User must be able to upload documents:
+- during signup/application
+- after signup from dashboard
+
+Document types:
+- Insurance proof
+- Accreditation proof
+- Address/locality proof
+- Other supporting documents
+
+7. Auth/RLS
+Use Supabase Auth.
+Every profile/business/application/document must be linked to auth.uid().
+
+RLS rules:
+- User can only view/edit their own profile, business, application and documents.
+- Admin can view/manage all users, applications and documents.
+- Public can only view approved public profiles.
+
+8. Route protection
+Protect member dashboard routes.
+If not logged in, redirect to login.
+If logged in, redirect to /dashboard or /member/dashboard.
+
+Protect admin routes separately.
+Only admin users can access admin dashboard.
+
+9. Password reset
+Make sure login includes:
+- forgot password
+- reset password flow
+- email confirmation if already supported by the template
+
+10. Disable generic registration
+Find and disable/hide:
+- /register
+- /signup
+- generic auth register forms
+- header signup buttons
+- footer signup links
+- any “create account” buttons not connected to TVC application/payment flow
+
+If a user visits a disabled signup/register route directly, redirect them to:
+/join
+
+Add message:
+“To create a TVC Approved account, please complete the application and payment flow.”
+
+11. Test full flow
+Test this exact journey:
+- User clicks Join TVC
+- User applies
+- Supabase auth user is created
+- Application status is Pending Payment
+- User is redirected to payment link
+- User returns later
+- User logs in successfully
+- User sees dashboard
+- Admin can see application
+- Admin marks payment as paid
+- Status changes to Pending Review
+- User dashboard updates correctly
+- Admin approves member
+- TVC number is assigned
+- Public profile becomes searchable
+
+Important:
+Do not require automatic payment webhook confirmation.
+Do not block login just because payment is not confirmed.
+Do not allow users to create accounts through any route except the TVC application/payment flow.
+Payment confirmation is manual from admin unless future automation is added.

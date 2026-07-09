@@ -86,11 +86,12 @@ interface ApplicationForm {
   email: string;
   phone: string;
   message: string;
+  password: string;
 }
 
 const EMPTY_FORM: ApplicationForm = {
   name: "", business_name: "", trade_type: "", location: "",
-  website: "", email: "", phone: "", message: "",
+  website: "", email: "", phone: "", message: "", password: "",
 };
 
 const TRADE_TYPES = [
@@ -103,8 +104,10 @@ const TRADE_TYPES = [
 
 export default function JoinPage() {
   const [form, setForm] = useState<ApplicationForm>(EMPTY_FORM);
-  const [step, setStep] = useState<"form" | "documents" | "done">("form");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [step, setStep] = useState<"form" | "payment" | "documents" | "done">("form");
   const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joinDocs, setJoinDocs] = useState<Record<string, Array<{ id: string; file_name: string }>>>({});
@@ -166,6 +169,14 @@ export default function JoinPage() {
       setError("Please fill in all required fields.");
       return;
     }
+    if (!form.password || form.password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (form.password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -180,7 +191,8 @@ export default function JoinPage() {
       }
       const data = await res.json();
       setApplicationId(data.id || null);
-      setStep("documents");
+      setPaymentUrl(data.payment_url || null);
+      setStep("payment");
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -195,6 +207,59 @@ export default function JoinPage() {
     { type: "other",            icon: HelpCircle,  label: "Other Supporting Documents",   desc: "Companies House certificate, ID, or any other relevant evidence." },
   ] as const;
 
+  if (step === "payment") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicNav />
+        <div className="flex-1 flex items-center justify-center px-6 py-24">
+          <div className="max-w-md w-full text-center">
+            <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-extrabold mb-4">Account created!</h1>
+            <p className="text-muted-foreground mb-6 leading-relaxed">
+              Your TVC account has been created. Complete payment below to begin the verification process. You can sign in at any time using the email and password you just set.
+            </p>
+            <div className="bg-card border border-border rounded-2xl p-6 mb-6 text-left space-y-3">
+              <p className="text-sm font-semibold mb-2">What happens next?</p>
+              {[
+                "Complete payment using the button below",
+                "Upload your verification documents (now or later from your dashboard)",
+                "Our team runs your 6 independent checks",
+                "You receive your TVC number and public profile once approved",
+              ].map((s, i) => (
+                <div key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 text-xs font-bold mt-0.5">{i + 1}</div>
+                  {s}
+                </div>
+              ))}
+            </div>
+            {paymentUrl ? (
+              <Button
+                className="w-full gradient-brand text-white border-0 hover:opacity-90 font-semibold h-11 mb-3"
+                onClick={() => window.open(paymentUrl!, "_blank", "noopener")}
+              >
+                Complete Payment — £20/month
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </Button>
+            ) : (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm text-amber-300 mb-3">
+                Payment link not yet configured. Contact us and we'll send you the payment link directly.
+              </div>
+            )}
+            <Button variant="outline" className="w-full mb-3" onClick={() => setStep("documents")}>
+              Upload documents first
+            </Button>
+            <Button variant="ghost" className="w-full text-sm" asChild>
+              <Link href="/login">Sign in to your account →</Link>
+            </Button>
+          </div>
+        </div>
+        <PublicFooter />
+      </div>
+    );
+  }
+
   if (step === "documents") {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -204,7 +269,7 @@ export default function JoinPage() {
             <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-2xl font-extrabold mb-2">Application received!</h1>
+            <h1 className="text-2xl font-extrabold mb-2">Upload documents</h1>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-md mx-auto">
               Upload your verification documents below to speed up the process. You can also skip and upload these later from your member dashboard.
             </p>
@@ -300,20 +365,23 @@ export default function JoinPage() {
             <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-extrabold mb-4">Application received!</h1>
-            <p className="text-muted-foreground mb-8 leading-relaxed">
-              Thank you for applying to TVC Secured. We'll begin your verification shortly and be in touch via email with next steps.
+            <h1 className="text-3xl font-extrabold mb-4">Documents uploaded!</h1>
+            <p className="text-muted-foreground mb-6 leading-relaxed">
+              Your documents have been submitted. Once your payment is confirmed, our team will begin your 6 independent checks.
             </p>
-            <div className="bg-card border border-border rounded-2xl p-6 mb-6 text-left space-y-3">
-              <p className="text-sm font-semibold mb-2">What happens next?</p>
-              {["We review your application within 24 hours", "Our team runs your 6 independent checks", "You receive your TVC number and profile once approved"].map((s, i) => (
-                <div key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 text-xs font-bold mt-0.5">{i + 1}</div>
-                  {s}
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" asChild className="w-full">
+            {paymentUrl && (
+              <Button
+                className="w-full gradient-brand text-white border-0 hover:opacity-90 font-semibold h-11 mb-3"
+                onClick={() => window.open(paymentUrl!, "_blank", "noopener")}
+              >
+                Complete Payment — £20/month
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </Button>
+            )}
+            <Button variant="outline" asChild className="w-full mb-3">
+              <Link href="/login">Sign in to your dashboard</Link>
+            </Button>
+            <Button variant="ghost" asChild className="w-full text-sm">
               <Link href="/">Back to home</Link>
             </Button>
           </div>
@@ -479,6 +547,17 @@ export default function JoinPage() {
               </div>
             </div>
 
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Create password <span className="text-destructive">*</span></Label>
+                <Input id="password" type="password" value={form.password} onChange={update("password")} placeholder="Min. 8 characters" autoComplete="new-password" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm_password">Confirm password <span className="text-destructive">*</span></Label>
+                <Input id="confirm_password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat password" autoComplete="new-password" required />
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="message">Anything else you'd like to tell us?</Label>
               <textarea
@@ -492,7 +571,7 @@ export default function JoinPage() {
             </div>
 
             <Button type="submit" disabled={submitting} className="w-full gradient-brand text-white border-0 hover:opacity-90 font-semibold h-11">
-              {submitting ? "Submitting…" : "Submit Application"}
+              {submitting ? "Creating account…" : "Create Account & Submit Application"}
               {!submitting && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
 

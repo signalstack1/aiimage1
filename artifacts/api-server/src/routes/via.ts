@@ -85,21 +85,38 @@ router.get("/via/verify/:viaNumber", async (req, res) => {
   }
 });
 
-// POST /api/via/apply — public application form submission
+// POST /api/via/apply — public application form submission (creates Supabase auth user)
 router.post("/via/apply", async (req, res) => {
-  const { name, business_name, trade_type, location, website, email, phone, message } = req.body || {};
+  const { name, business_name, trade_type, location, website, email, phone, message, password } = req.body || {};
 
   if (!name || !business_name || !trade_type || !email) {
     return err(res, "name, business_name, trade_type, and email are required", 400);
   }
+  if (!password || (password as string).length < 8) {
+    return err(res, "password must be at least 8 characters", 400);
+  }
 
   if (!isSupabaseConfigured()) {
     logger.info({ email }, "via/apply — Supabase not configured, returning mock ok");
-    return ok(res, { ok: true, id: `mock-${Date.now()}` }, 201);
+    return ok(res, { ok: true, id: `mock-${Date.now()}`, payment_url: null }, 201);
   }
 
   try {
-    // Create or find business record
+    // 1. Create Supabase auth user (does NOT require email confirmation to log in)
+    const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+      email: (email as string).trim().toLowerCase(),
+      password: password as string,
+      email_confirm: false,
+    });
+    if (authErr) {
+      if ((authErr as any).status === 422 || authErr.message?.toLowerCase().includes("already")) {
+        return err(res, "An account with this email already exists. Please sign in instead.", 409);
+      }
+      throw authErr;
+    }
+    const userId = authData.user.id;
+
+    // 2. Create business record linked to the new auth user
     const { data: biz, error: bizErr } = await supabase
       .from("businesses")
       .insert({
@@ -109,29 +126,42 @@ router.post("/via/apply", async (req, res) => {
         website: website || null,
         contact_phone: phone || null,
         contact_enabled: false,
+        user_id: userId,
       })
       .select()
       .single();
 
     if (bizErr) throw bizErr;
 
-    // Create application linked to business
+    // 3. Create application at "pending_payment" status
     const { data: appl, error: applErr } = await supabase
       .from("applications")
       .insert({
         business_id: biz.id,
         applicant_name: name,
-        applicant_email: email,
+        applicant_email: (email as string).trim().toLowerCase(),
         applicant_phone: phone || null,
         message: message || null,
-        status: "pending",
+        status: "pending_payment",
       })
       .select()
       .single();
 
     if (applErr) throw applErr;
 
-    // Log event (best-effort, non-fatal)
+    // 4. Fetch the membership payment link (best-effort — no failure if not configured)
+    let paymentUrl: string | null = null;
+    try {
+      const { data: pl } = await supabase
+        .from("payment_links")
+        .select("url")
+        .eq("slug", "via-membership")
+        .eq("is_active", true)
+        .maybeSingle();
+      paymentUrl = pl?.url ?? null;
+    } catch { /* non-fatal */ }
+
+    // 5. Log event (best-effort)
     try {
       await supabase.from("events").insert({
         event_type: "application_submit",
@@ -140,7 +170,7 @@ router.post("/via/apply", async (req, res) => {
       });
     } catch { /* non-fatal */ }
 
-    return ok(res, { ok: true, id: appl.id }, 201);
+    return ok(res, { ok: true, id: appl.id, payment_url: paymentUrl }, 201);
   } catch (e: any) {
     logger.error({ err: e }, "POST /via/apply error");
     return err(res, e.message);

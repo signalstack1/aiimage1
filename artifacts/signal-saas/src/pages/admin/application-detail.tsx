@@ -26,11 +26,12 @@ const CHECK_LABELS: Record<string, string> = {
 };
 const CHECK_ORDER = ["local_address","business_type","insurance","accreditations","digital_footprint","public_records"];
 
-const STATUS_OPTIONS = ["pending","in_review","approved","rejected","expired"];
+const STATUS_OPTIONS = ["pending_payment","pending","in_review","approved","rejected","expired"];
 const STATUS_LABELS: Record<string, string> = {
-  pending:"Pending", in_review:"In Review", approved:"Approved", rejected:"Rejected", expired:"Expired",
+  pending_payment:"Pending Payment", pending:"Pending Review", in_review:"In Review", approved:"Approved", rejected:"Rejected", expired:"Expired",
 };
 const STATUS_STYLE: Record<string, string> = {
+  pending_payment: "bg-orange-500/15 text-orange-400 border-orange-500/30",
   pending:   "bg-sky-500/15 text-sky-400 border-sky-500/30",
   in_review: "bg-amber-500/15 text-amber-400 border-amber-500/30",
   approved:  "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -123,6 +124,9 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
   const [requestingDocs, setRequestingDocs] = useState(false);
   const [requestMsg, setRequestMsg]     = useState("");
   const [requestSuccess, setRequestSuccess] = useState(false);
+  const [markingPaid, setMarkingPaid]   = useState(false);
+  const [markPaidNotes, setMarkPaidNotes] = useState("");
+  const [markPaidSuccess, setMarkPaidSuccess] = useState(false);
   const token = sessionStorage.getItem("admin_token") || "";
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -265,6 +269,27 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
     }
   };
 
+  const markAsPaid = async () => {
+    if (!app) return;
+    setMarkingPaid(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/admin/applications/${app.id}/mark-paid`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ payment_notes: markPaidNotes.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Failed to mark as paid");
+      }
+      setApp((a) => a ? { ...a, status: "pending" } : a);
+      setStatusVal("pending");
+      setMarkPaidSuccess(true);
+      setMarkPaidNotes("");
+      setTimeout(() => setMarkPaidSuccess(false), 6000);
+    } catch { /* silent */ } finally { setMarkingPaid(false); }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -324,6 +349,47 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
             </p>
           </div>
         </div>
+
+        {/* ── Payment confirmation banner ─────────────────────────────────── */}
+        {app.status === "pending_payment" && (
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-5 mb-6">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-orange-400 mb-1">Awaiting payment confirmation</h3>
+                <p className="text-sm text-muted-foreground">
+                  This applicant has created their account but payment has not been confirmed yet.
+                  Once you mark as paid, their application moves to Pending Review and verification can begin.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-3 pl-8">
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1 block">Payment notes <span className="text-muted-foreground/60">(optional — reference number, method, amount)</span></label>
+                <textarea
+                  value={markPaidNotes}
+                  onChange={(e) => setMarkPaidNotes(e.target.value)}
+                  placeholder="e.g. Bank transfer ref: 123456, £20 received on 09/07/26"
+                  rows={2}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                />
+              </div>
+              {markPaidSuccess && (
+                <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg px-3 py-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  Payment confirmed — application moved to Pending Review.
+                </div>
+              )}
+              <Button
+                onClick={markAsPaid}
+                disabled={markingPaid}
+                className="gradient-brand text-white border-0 hover:opacity-90 font-semibold"
+              >
+                {markingPaid ? "Confirming…" : "✓ Mark as Paid — Move to Pending Review"}
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* LEFT: Applicant info + Documents */}
