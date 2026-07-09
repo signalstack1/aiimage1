@@ -103,9 +103,37 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         .catch(() => {});
     };
 
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 30_000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      fetchUnread();
+      interval = setInterval(fetchUnread, 30_000);
+    };
+
+    const stopPolling = () => {
+      if (interval !== null) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    if (document.visibilityState !== "hidden") {
+      startPolling();
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [location]);
 
   // Fetch pending applications count for the Applications badge
@@ -125,9 +153,37 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         .catch(() => {});
     };
 
-    fetchPending();
-    const interval = setInterval(fetchPending, 30_000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      fetchPending();
+      interval = setInterval(fetchPending, 30_000);
+    };
+
+    const stopPolling = () => {
+      if (interval !== null) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    if (document.visibilityState !== "hidden") {
+      startPolling();
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [location]);
 
   const groups = buildNav()
