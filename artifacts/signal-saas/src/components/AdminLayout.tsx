@@ -86,19 +86,26 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = sessionStorage.getItem("admin_token") || "";
     if (!token) return;
-    const lastSeen = Number(localStorage.getItem(LAST_SEEN_KEY) || "0");
-    fetch(`${BASE_URL}/api/admin/via-notifications`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (!Array.isArray(d)) return;
-        const unread = d.filter(
-          (n: any) => !n.is_read && new Date(n.created_at).getTime() > lastSeen
-        ).length;
-        setUnreadCount(unread);
+
+    const fetchUnread = () => {
+      const lastSeen = Number(localStorage.getItem(LAST_SEEN_KEY) || "0");
+      fetch(`${BASE_URL}/api/admin/via-notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => {});
+        .then((r) => r.json())
+        .then((d) => {
+          if (!Array.isArray(d)) return;
+          const unread = d.filter(
+            (n: any) => !n.is_read && new Date(n.created_at).getTime() > lastSeen
+          ).length;
+          setUnreadCount(unread);
+        })
+        .catch(() => {});
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30_000);
+    return () => clearInterval(interval);
   }, [location]);
 
   // Fetch pending applications count for the Applications badge
