@@ -71,6 +71,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const modules = APP_CONFIG.adminModules;
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingApplications, setPendingApplications] = useState(0);
 
   const isActive = (href: string) =>
     href === "/admin" ? location === "/admin" : location.startsWith(href);
@@ -95,6 +96,21 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           (n: any) => !n.is_read && new Date(n.created_at).getTime() > lastSeen
         ).length;
         setUnreadCount(unread);
+      })
+      .catch(() => {});
+  }, [location]);
+
+  // Fetch pending applications count for the Applications badge
+  useEffect(() => {
+    const token = sessionStorage.getItem("admin_token") || "";
+    if (!token) return;
+    fetch(`${BASE_URL}/api/admin/via-overview`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        const pending = d?.applications?.pending ?? 0;
+        setPendingApplications(pending);
       })
       .catch(() => {});
   }, [location]);
@@ -145,6 +161,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     >
                       <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? "text-primary" : ""}`} />
                       <span className="flex-1">{label}</span>
+                      {key === "applications" && pendingApplications > 0 && (
+                        <span className="text-[10px] font-bold bg-amber-500 text-white rounded-full min-w-[1rem] h-4 px-1 flex items-center justify-center shrink-0">
+                          {pendingApplications > 99 ? "99+" : pendingApplications}
+                        </span>
+                      )}
                       {key === "notifications" && unreadCount > 0 && !active && (
                         <span className="text-[10px] font-bold bg-primary text-primary-foreground rounded-full w-4 h-4 flex items-center justify-center shrink-0">
                           {unreadCount > 9 ? "9+" : unreadCount}
