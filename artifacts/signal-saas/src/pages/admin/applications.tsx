@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ClipboardList, ChevronRight, Star } from "lucide-react";
 
-const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 const STATUS_TABS = [
   { value: "all",             label: "All" },

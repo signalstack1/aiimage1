@@ -86,6 +86,7 @@ export default function HomePage() {
             <Link href="/verify" className="hover:text-foreground transition-colors">Check a TVC Number</Link>
             <Link href="/join" className="hover:text-foreground transition-colors">Join TVC</Link>
             <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+            <Link href="/login" className="hover:text-foreground transition-colors">Member Login</Link>
           </nav>
           <Button size="sm" className="gradient-brand text-white border-0 hover:opacity-90 font-semibold" asChild>
             <Link href="/join">Apply Now</Link>

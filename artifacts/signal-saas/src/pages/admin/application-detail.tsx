@@ -14,7 +14,7 @@ import {
   CalendarDays, MessageSquarePlus, ThumbsUp, ThumbsDown, Ban,
 } from "lucide-react";
 
-const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 const CHECK_LABELS: Record<string, string> = {
   local_address:     "Local Address",

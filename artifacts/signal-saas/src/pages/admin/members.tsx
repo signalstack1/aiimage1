@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Search, ChevronRight, ShieldCheck } from "lucide-react";
 
-const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 const STATUS_TABS = [
   { value: "all",      label: "All" },

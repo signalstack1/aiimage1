@@ -2,7 +2,7 @@ import { createContext, useContext, useCallback, useEffect, useState, type React
 import { supabase } from "@/lib/supabase";
 import type { Session, User } from "@supabase/supabase-js";
 
-const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

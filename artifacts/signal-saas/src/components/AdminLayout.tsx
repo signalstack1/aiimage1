@@ -9,7 +9,7 @@ import { APP_CONFIG } from "@/config/app";
 import { TVCLogo } from "@/components/TVCLogo";
 import { useEffect, useState } from "react";
 
-const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 const LAST_SEEN_KEY = "via_admin_notif_last_seen";
 
 interface NavItem {

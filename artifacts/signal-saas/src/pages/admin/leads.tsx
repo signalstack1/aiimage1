@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ChevronUp, Trash2, ClipboardList, Plus, X, Globe, MapPin, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 const STAGES = ["new", "contacted", "replied", "interested", "converted", "dead"] as const;
 type Stage = typeof STAGES[number];

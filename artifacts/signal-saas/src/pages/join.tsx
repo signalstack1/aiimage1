@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { APP_CONFIG } from "@/config/app";
 
-const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 const BENEFITS = [
   { icon: Hash,        title: "Unique TVC Number",     desc: "Your own TVC number (e.g. TVC1042) — searchable by the public and displayed on your profile." },

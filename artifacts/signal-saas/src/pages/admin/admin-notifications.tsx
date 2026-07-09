@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Bell, ClipboardList, FileText, ShieldCheck, CheckCircle, ExternalLink } from "lucide-react";
 
-const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 const LAST_SEEN_KEY = "via_admin_notif_last_seen";
 
