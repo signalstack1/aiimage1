@@ -37,6 +37,7 @@ import AdminLeadsPage from "@/pages/admin/leads";
 import AdminApplicationsPage from "@/pages/admin/applications";
 import AdminApplicationDetailPage from "@/pages/admin/application-detail";
 import AdminMembersPage from "@/pages/admin/members";
+import MemberProfilePage from "@/pages/admin/member-profile";
 import AdminPaymentLinksPage from "@/pages/admin/payment-links";
 import AdminNotificationsPage from "@/pages/admin/admin-notifications";
 import { AdminRoute, ModuleRoute } from "@/components/AdminRoute";
@@ -136,6 +137,9 @@ function Router() {
       </Route>
       <Route path="/admin/members">
         {() => <ModuleRoute module="members"><AdminMembersPage /></ModuleRoute>}
+      </Route>
+      <Route path="/admin/members/:id">
+        {() => <AdminRoute><MemberProfilePage /></AdminRoute>}
       </Route>
       <Route path="/admin/payment-links">
         {() => <ModuleRoute module="payment_links"><AdminPaymentLinksPage /></ModuleRoute>}

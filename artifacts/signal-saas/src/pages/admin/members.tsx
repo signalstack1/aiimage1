@@ -132,12 +132,11 @@ export default function AdminMembersPage() {
                 {members.map((m) => {
                   const appStatus = m.applications?.[0]?.status ?? "pending";
                   const statusCls = STATUS_STYLE[appStatus] ?? STATUS_STYLE.expired;
-                  const appId = m.applications?.[0]?.id;
                   return (
                     <tr
                       key={m.id}
                       className="hover:bg-accent/20 transition-colors cursor-pointer"
-                      onClick={() => { if (appId) window.location.href = `${BASE_URL}/admin/applications/${appId}`; }}
+                      onClick={() => { window.location.href = `${BASE_URL}/admin/members/${m.id}`; }}
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
@@ -171,7 +170,7 @@ export default function AdminMembersPage() {
                         </span>
                       </td>
                       <td className="pr-4">
-                        {appId && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </td>
                     </tr>
                   );

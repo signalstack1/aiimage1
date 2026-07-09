@@ -91,12 +91,16 @@ router.get("/admin/via-overview", requireAdmin, async (_req, res) => {
   try {
     const [{ data: apps }, { data: leads }] = await Promise.all([
       supabase.from("applications").select("status"),
-      supabase.from("leads").select("status"),
+      supabase.from("leads").select("stage, status"),  // select both for backward compat
     ]);
     const byStatus: Record<string, number> = {};
     for (const a of apps || []) byStatus[a.status] = (byStatus[a.status] ?? 0) + 1;
     const byStage: Record<string, number> = {};
-    for (const l of leads || []) byStage[l.status] = (byStage[l.status] ?? 0) + 1;
+    // Use `stage` (VIA schema) with `status` as fallback for pre-migration rows
+    for (const l of leads || []) {
+      const s: string = l.stage || l.status || "new";
+      byStage[s] = (byStage[s] ?? 0) + 1;
+    }
     return ok(res, {
       applications: {
         total: apps?.length ?? 0,
@@ -302,6 +306,9 @@ router.get("/admin/applications/:id", requireAdmin, async (req, res) => {
 });
 
 // PATCH /api/admin/applications/:id — update status; assign VIA number
+// ORDER IS INTENTIONAL: validate VIA uniqueness first (no side effects),
+// then assign VIA to business, then update application status — so a 409
+// is returned without any partial writes.
 router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { status, via_number, via_number_for_business_id } = req.body || {};
@@ -311,30 +318,30 @@ router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
   }
 
   try {
-    const updates: Record<string, any> = { updated_at: new Date().toISOString() };
-    if (status) updates.status = status;
-
-    const { error: applErr } = await supabase.from("applications").update(updates).eq("id", id);
-    if (applErr) throw applErr;
-
+    // ── STEP 1: VIA uniqueness check — NO DB writes yet ───────────────────────
     if (via_number && via_number_for_business_id) {
-      // Validate uniqueness
-      const { data: existing } = await supabase
+      const normalized = via_number.trim().toUpperCase();
+      if (!/^VIA\d+$/i.test(normalized)) {
+        return err(res, "VIA number must be in the format VIA1001", 400);
+      }
+      const { data: conflict } = await supabase
         .from("businesses")
         .select("id")
-        .eq("via_number", via_number.trim().toUpperCase())
+        .eq("via_number", normalized)
         .maybeSingle();
-      if (existing && existing.id !== via_number_for_business_id) {
-        return err(res, `VIA number ${via_number} is already assigned to another business`, 409);
+      if (conflict && conflict.id !== via_number_for_business_id) {
+        // Return 409 — application status is NOT changed
+        return err(res, `VIA number ${normalized} is already assigned to another business`, 409);
       }
 
-      const normalized = via_number.trim().toUpperCase();
-      await supabase
+      // ── STEP 2: Assign VIA to business (uniqueness confirmed) ──────────────
+      const { error: bizErr } = await supabase
         .from("businesses")
-        .update({ via_number: normalized })
+        .update({ via_number: normalized, updated_at: new Date().toISOString() })
         .eq("id", via_number_for_business_id);
+      if (bizErr) throw bizErr;
 
-      // Create notification for member (best-effort)
+      // ── STEP 3: Member notification (best-effort, non-fatal) ───────────────
       try {
         await supabase.from("notifications").insert({
           business_id: via_number_for_business_id,
@@ -343,6 +350,15 @@ router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
           body: `Congratulations — your VIA number is ${normalized}. You can now download your badge from the member dashboard.`,
         });
       } catch { /* non-fatal */ }
+    }
+
+    // ── STEP 4: Update application status (after VIA safely written, or skipped) ─
+    if (status) {
+      const { error: applErr } = await supabase
+        .from("applications")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (applErr) throw applErr;
     }
 
     return ok(res, { ok: true });
@@ -490,6 +506,62 @@ router.get("/admin/members", requireAdmin, async (req, res) => {
     return ok(res, results);
   } catch (e: any) {
     logger.error({ err: e }, "GET /admin/members error");
+    return err(res, e.message);
+  }
+});
+
+// GET /api/admin/members/:id — read-only member profile with documents
+router.get("/admin/members/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (!isSupabaseConfigured()) {
+    return ok(res, {
+      id: "mock-biz-3",
+      business_name: "Williams Roofing",
+      trade_type: "Roofer",
+      location: "Leeds",
+      website: "https://williamsroofing.co.uk",
+      contact_phone: "07700 900003",
+      contact_email: "info@williamsroofing.co.uk",
+      description: "Professional roofing services across West Yorkshire.",
+      via_number: "VIA1001",
+      user_id: null,
+      application: { id: "mock-app-3", status: "approved", created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
+      documents: [
+        { id: "doc-1", document_type: "insurance_certificate", file_name: "insurance-2024.pdf", created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
+        { id: "doc-2", document_type: "trade_accreditation",   file_name: "gas-safe-cert.pdf",  created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
+      ],
+      verification_checks: [
+        { check_type: "local_address", passed: true },
+        { check_type: "business_type", passed: true },
+        { check_type: "insurance",     passed: true },
+        { check_type: "accreditation", passed: true },
+        { check_type: "digital_footprint", passed: false },
+        { check_type: "contact_records",   passed: true },
+      ],
+    });
+  }
+  try {
+    const { data: biz, error: bizErr } = await supabase
+      .from("businesses")
+      .select("id, business_name, trade_type, location, website, contact_phone, contact_email, description, via_number, user_id, created_at")
+      .eq("id", id)
+      .single();
+    if (bizErr || !biz) return err(res, bizErr?.message ?? "Not found", 404);
+
+    const [{ data: apps }, { data: docs }, { data: checks }] = await Promise.all([
+      supabase.from("applications").select("id, status, created_at").eq("business_id", id).order("created_at", { ascending: false }).limit(1),
+      supabase.from("documents").select("id, document_type, file_name, created_at").eq("business_id", id).order("created_at", { ascending: false }),
+      supabase.from("verification_checks").select("check_type, passed").eq("business_id", id),
+    ]);
+
+    return ok(res, {
+      ...biz,
+      application: apps?.[0] ?? null,
+      documents: docs ?? [],
+      verification_checks: checks ?? [],
+    });
+  } catch (e: any) {
+    logger.error({ err: e }, "GET /admin/members/:id error");
     return err(res, e.message);
   }
 });
