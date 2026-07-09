@@ -56,9 +56,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="h-14 px-4 border-b border-border flex items-center gap-2.5">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg gradient-brand flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5 text-white" />
-            </div>
+            <img src="/tvc_logo.png" alt="TVC Secured" className="w-7 h-7 rounded-lg object-cover shrink-0" />
             <span className="font-bold text-sm tracking-tight truncate">{APP_CONFIG.appName}</span>
           </Link>
         </div>

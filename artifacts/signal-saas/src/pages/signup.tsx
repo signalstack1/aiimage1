@@ -55,9 +55,7 @@ export default function SignupPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <Link href="/" className="flex items-center gap-2.5 justify-center mb-8">
-          <div className="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5 text-white" />
-          </div>
+          <img src="/tvc_logo.png" alt="TVC Secured" className="w-9 h-9 rounded-xl object-cover" />
           <span className="font-bold text-xl tracking-tight">{APP_CONFIG.appName}</span>
         </Link>
 

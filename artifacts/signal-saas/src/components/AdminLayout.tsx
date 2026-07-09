@@ -138,9 +138,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background text-foreground flex">
       <aside className="w-60 shrink-0 border-r border-border flex flex-col bg-card/40">
         <div className="h-14 px-4 border-b border-border flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg gradient-brand flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-3.5 h-3.5 text-white" />
-          </div>
+          <img src="/tvc_logo.png" alt="TVC Secured" className="w-7 h-7 rounded-lg object-cover shrink-0" />
           <span className="font-bold text-sm tracking-tight truncate">{APP_CONFIG.appName}</span>
           <span className="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium shrink-0">Admin</span>
         </div>
