@@ -12,6 +12,7 @@ import ContactPage from "@/pages/contact";
 import { DisclaimerPage, TermsPage, PrivacyPage } from "@/pages/legal";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
+import ResetPasswordPage from "@/pages/reset-password";
 import DashboardHome from "@/pages/dashboard/index";
 import DashboardProfile from "@/pages/dashboard/profile";
 import DashboardDocuments from "@/pages/dashboard/documents";
@@ -68,6 +69,7 @@ function Router() {
       {/* ── Member auth ──────────────────────────────────────── */}
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
 
       {/* ── Member dashboard (protected) ─────────────────────── */}
       <Route path="/dashboard">

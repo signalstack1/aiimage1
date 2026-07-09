@@ -42,6 +42,8 @@ interface AuthContextValue {
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshMember: () => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
   /**
    * Authenticated fetch for /api/member/* calls.
    * On 401: attempts a session refresh and retries once.
@@ -192,8 +194,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMember(null);
   };
 
+  const sendPasswordReset = async (email: string) => {
+    const redirectTo = `${window.location.origin}${BASE_URL}/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    return { error: error?.message ?? null };
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return { error: error?.message ?? null };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, member, loading, signIn, signUp, signOut, refreshMember, fetchWithAuth }}>
+    <AuthContext.Provider value={{ user, session, member, loading, signIn, signUp, signOut, refreshMember, sendPasswordReset, updatePassword, fetchWithAuth }}>
       {children}
     </AuthContext.Provider>
   );
