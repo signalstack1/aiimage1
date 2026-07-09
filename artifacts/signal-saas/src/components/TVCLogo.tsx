@@ -4,56 +4,50 @@ interface TVCLogoProps {
 }
 
 export function TVCLogo({ size = 32, className = "" }: TVCLogoProps) {
-  const r = size / 40;
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 40 40"
+      viewBox="0 0 120 120"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-label="TVC Secured"
     >
       {/* Dark navy background */}
-      <rect width="40" height="40" rx="8" fill="#0f172a" />
+      <rect width="120" height="120" rx="12" fill="#0d1b2e" />
 
-      {/* "t" */}
+      {/* T — bold white */}
       <text
-        x="4"
-        y="27"
-        fontFamily="Inter, ui-sans-serif, sans-serif"
-        fontSize="15"
-        fontWeight="700"
+        x="8"
+        y="86"
+        fontFamily="Arial Black, Impact, ui-sans-serif, sans-serif"
+        fontSize="62"
+        fontWeight="900"
         fill="white"
-        letterSpacing="-0.5"
-      >
-        t
-      </text>
+      >T</text>
 
-      {/* "v" */}
-      <text
-        x="12"
-        y="27"
-        fontFamily="Inter, ui-sans-serif, sans-serif"
-        fontSize="15"
-        fontWeight="700"
-        fill="white"
-        letterSpacing="-0.5"
-      >
-        v
-      </text>
-
-      {/* "c" — green circle with checkmark */}
-      <circle cx="30" cy="20" r="8" stroke="#22c55e" strokeWidth="2.5" fill="none" />
-      <path
-        d="M26.5 20.5 L29 23 L33.5 17"
-        stroke="#22c55e"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
+      {/* Green checkmark — replaces the V */}
+      {/*
+        Bottom elbow point ~(57, 82)
+        Left short arm up-left to ~(38, 64)
+        Right long arm up-right to ~(76, 24) extending above letters
+        Stroke-width style: polygon approximation ~9px thick
+      */}
+      <polygon
+        points="34,64 42,56 58,76 76,20 84,26 60,84 42,84"
+        fill="#22c55e"
       />
+
+      {/* C — bold white */}
+      <text
+        x="72"
+        y="86"
+        fontFamily="Arial Black, Impact, ui-sans-serif, sans-serif"
+        fontSize="62"
+        fontWeight="900"
+        fill="white"
+      >C</text>
     </svg>
   );
 }
