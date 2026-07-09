@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { TVCLogo } from "@/components/TVCLogo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -78,7 +79,7 @@ export default function HomePage() {
       <header className="fixed top-0 inset-x-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/tvc_logo.png" alt="TVC Secured" className="w-8 h-8 rounded-lg object-cover" />
+            <TVCLogo size={32} />
             <span className="font-bold text-lg tracking-tight">{APP_CONFIG.appName}</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
@@ -249,7 +250,7 @@ export default function HomePage() {
       <footer className="border-t border-border py-10 px-6">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <img src="/tvc_logo.png" alt="TVC Secured" className="w-6 h-6 rounded object-cover" />
+            <TVCLogo size={24} />
             <span className="font-semibold text-foreground">{APP_CONFIG.appName}</span>
           </div>
           <div className="flex items-center gap-6">

@@ -3,7 +3,8 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { TVCLogo } from "@/components/TVCLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { APP_CONFIG } from "@/config/app";
 
@@ -55,7 +56,7 @@ export default function SignupPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <Link href="/" className="flex items-center gap-2.5 justify-center mb-8">
-          <img src="/tvc_logo.png" alt="TVC Secured" className="w-9 h-9 rounded-xl object-cover" />
+          <TVCLogo size={36} />
           <span className="font-bold text-xl tracking-tight">{APP_CONFIG.appName}</span>
         </Link>
 

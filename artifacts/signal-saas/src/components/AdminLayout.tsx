@@ -2,10 +2,11 @@ import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, Key,
   BarChart3, Activity, Bell,
-  Shield, Settings, LogOut, ShieldCheck, ChevronRight,
+  Shield, Settings, LogOut, ChevronRight,
   ClipboardList,
 } from "lucide-react";
 import { APP_CONFIG } from "@/config/app";
+import { TVCLogo } from "@/components/TVCLogo";
 import { useEffect, useState } from "react";
 
 const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
@@ -138,7 +139,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background text-foreground flex">
       <aside className="w-60 shrink-0 border-r border-border flex flex-col bg-card/40">
         <div className="h-14 px-4 border-b border-border flex items-center gap-2.5">
-          <img src="/tvc_logo.png" alt="TVC Secured" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+          <TVCLogo size={28} />
           <span className="font-bold text-sm tracking-tight truncate">{APP_CONFIG.appName}</span>
           <span className="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium shrink-0">Admin</span>
         </div>

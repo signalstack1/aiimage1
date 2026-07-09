@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Link } from "wouter";
+import { TVCLogo } from "@/components/TVCLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -535,7 +536,7 @@ function PublicFooter() {
     <footer className="border-t border-border py-8 px-6 mt-auto">
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <img src="/tvc_logo.png" alt="TVC Secured" className="w-6 h-6 rounded object-cover" />
+          <TVCLogo size={24} />
           <span className="font-semibold text-foreground">{APP_CONFIG.appName}</span>
         </div>
         <div className="flex items-center gap-6">

@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, User, FileText, Award,
-  Bell, CreditCard, ShieldCheck, LogOut, ChevronRight,
+  Bell, CreditCard, LogOut, ChevronRight,
 } from "lucide-react";
+import { TVCLogo } from "@/components/TVCLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { APP_CONFIG } from "@/config/app";
 import { Badge } from "@/components/ui/badge";
@@ -56,7 +57,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="h-14 px-4 border-b border-border flex items-center gap-2.5">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/tvc_logo.png" alt="TVC Secured" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+            <TVCLogo size={28} />
             <span className="font-bold text-sm tracking-tight truncate">{APP_CONFIG.appName}</span>
           </Link>
         </div>
