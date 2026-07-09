@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, Users, Key,
   BarChart3, Activity, FileText, MessageSquare,
-  Shield, Settings, LogOut, TrendingUp, ChevronRight, Tag,
+  Shield, Settings, LogOut, ShieldCheck, ChevronRight, Tag,
   Wrench, CalendarCheck, ClipboardList, ShoppingBag,
   Star, Image, Building2,
 } from "lucide-react";
@@ -25,51 +25,43 @@ function buildNav(): NavGroup[] {
   return [
     {
       items: [
-        { key: "overview",    href: "/admin",                  label: "Overview",             icon: LayoutDashboard },
-        { key: "business_profile", href: "/admin/business-profile", label: "Business Profile", icon: Building2 },
+        { key: "overview",         href: "/admin",                  label: "Overview",             icon: LayoutDashboard },
+        { key: "business_profile", href: "/admin/business-profile", label: "Business Profile",     icon: Building2 },
       ],
     },
     {
-      label: "Shop",
+      // VIA: Applications & Members — enabled in Task 3 (admin dashboard)
+      label: "VIA Members",
       items: [
-        { key: "products",    href: "/admin/products",         label: cfg.products.plural,    icon: Package },
-        { key: "categories",  href: "/admin/categories",       label: "Categories",           icon: Tag },
-        { key: "customers",   href: "/admin/customers",        label: cfg.customers.plural,   icon: Users },
-        { key: "orders",      href: "/admin/orders",           label: cfg.orders.plural,      icon: ShoppingBag },
-        { key: "access",      href: "/admin/access",           label: cfg.access.plural,      icon: Key },
+        { key: "applications",  href: "/admin/applications",    label: "Applications",         icon: ClipboardList },
+        { key: "members",       href: "/admin/members",         label: "Members",              icon: Users },
+        { key: "payment_links", href: "/admin/payment-links",   label: "Payment Links",        icon: Key },
       ],
     },
     {
-      label: "Services",
+      label: "Pipeline",
       items: [
-        { key: "services",    href: "/admin/services",         label: cfg.services.plural,    icon: Wrench },
-        { key: "bookings",    href: "/admin/bookings",         label: cfg.bookings.plural,    icon: CalendarCheck },
         { key: "leads",       href: "/admin/leads",            label: cfg.leads.plural,       icon: ClipboardList },
-      ],
-    },
-    {
-      label: "Content",
-      items: [
-        { key: "reviews",     href: "/admin/reviews",          label: cfg.reviews.plural,     icon: Star },
-        { key: "gallery",     href: "/admin/gallery",          label: cfg.gallery.plural,     icon: Image },
-        { key: "messages",    href: "/admin/messages",         label: cfg.messages.plural,    icon: MessageSquare },
-        { key: "content",     href: "/admin/content",          label: "Content",              icon: FileText },
       ],
     },
     {
       label: "Insights",
       items: [
-        { key: "analytics",   href: "/admin/analytics",        label: "Analytics",            icon: BarChart3 },
         { key: "activity",    href: "/admin/activity",         label: "Activity",             icon: Activity },
+        { key: "analytics",   href: "/admin/analytics",        label: "Analytics",            icon: BarChart3 },
       ],
     },
     {
       label: "Admin",
       items: [
-        { key: "team",        href: "/admin/team",             label: "Admin Team",           icon: Shield },
         { key: "settings",    href: "/admin/settings",         label: "Settings",             icon: Settings },
       ],
     },
+    // ── VIA: disabled template nav groups (preserved for future reactivation) ──
+    // Shop group: products, categories, customers, orders, access
+    // Services group: services, bookings
+    // Content group: reviews, gallery, messages, content
+    // Admin group: team
   ];
 }
 
@@ -90,7 +82,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       ...g,
       items: g.items.filter((item) => {
         if (item.key === "overview") return true;
-        if (item.key === "categories") return modules["products"] !== false;
         if (item.key === "business_profile") return true;
         return modules[item.key] !== false;
       }),
@@ -102,7 +93,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       <aside className="w-60 shrink-0 border-r border-border flex flex-col bg-card/40">
         <div className="h-14 px-4 border-b border-border flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg gradient-brand flex items-center justify-center shrink-0">
-            <TrendingUp className="w-3.5 h-3.5 text-white" />
+            <ShieldCheck className="w-3.5 h-3.5 text-white" />
           </div>
           <span className="font-bold text-sm tracking-tight truncate">{APP_CONFIG.appName}</span>
           <span className="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium shrink-0">Admin</span>

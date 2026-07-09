@@ -1,184 +1,184 @@
 /**
  * ─────────────────────────────────────────────────────────
- *  APP CONFIG  —  edit this file to white-label the template
+ *  APP CONFIG  —  VIA Secured
  * ─────────────────────────────────────────────────────────
  *
  * Every user-facing string, colour, and piece of copy lives here.
  * The rest of the codebase imports from this file — nowhere else
  * contains hardcoded brand names, colours, or business copy.
- *
- * After cloning:
- *  1. Change appName, tagline, supportEmail, legalName
- *  2. Replace hero / stats / howItWorks / testimonials / faqs
- *  3. Update planFeatures to match your plan names in the DB
- *  4. Optionally change primaryColor (HSL string, e.g. "270 70% 55%")
- *  5. Pick a BUSINESS_PRESET or configure adminModules manually
  */
 
 export const APP_CONFIG = {
   // ── Identity ─────────────────────────────────────────────
-  appName: "Master Template",
-  tagline: "Precision Trading Signals",
+  appName: "VIA Secured",
+  tagline: "Independently Verified. Publicly Trusted.",
   description:
-    "Professional-grade trading signals across Crypto, Forex, and Stocks — delivered instantly to Discord and Telegram.",
-  supportEmail: "support@example.com",
+    "VIA independently verifies UK tradespeople — checking their business, insurance, accreditations, and digital footprint so you don't have to take their word for it.",
+  supportEmail: "support@viasecured.co.uk",
   /** Name used in legal pages and copyright notice */
-  legalName: "SignalStack",
+  legalName: "VIA Secured Ltd",
   /** One-liner describing what the business does — used in legal/disclaimer copy */
-  businessType: "educational trading signal information",
+  businessType: "tradesperson verification and trust services",
 
   // ── Theme ─────────────────────────────────────────────────
   /**
    * Primary brand colour as an HSL value WITHOUT the hsl() wrapper.
-   * e.g. "270 70% 55%"  →  purple
-   *      "142 76% 36%"  →  green
-   *      "199 89% 48%"  →  cyan (default — matches index.css)
+   * VIA green: 142 71% 45%
    * Set to null to keep the default from index.css unchanged.
    */
   primaryColor: null as string | null,
 
   // ── Hero section ──────────────────────────────────────────
   hero: {
-    badge: "Live signals · 68–72% win rate · 800+ active traders",
-    headlinePlain: "Trade smarter with",
-    headlineGradient: "precision signals",
+    badge: "UK Tradesperson Verification · Independent · Trusted",
+    headlinePlain: "Don't take their",
+    headlineGradient: "word for it…",
     subtext:
-      "Professional-grade trading signals across Crypto, Forex, and Stocks — delivered instantly to Discord and Telegram with full entry, target, and stop-loss levels.",
-    ctaPrimary: "Start with Starter — $29/mo",
+      "VIA independently checks tradespeople across the UK — verifying their business, insurance, accreditations, address, and digital footprint before issuing a public VIA number.",
+    ctaPrimary: "Join VIA — £20/month",
   },
 
   // ── Stats bar ─────────────────────────────────────────────
   stats: [
-    { value: "68–72%", label: "Historical win rate" },
-    { value: "3+ yrs", label: "Live track record" },
-    { value: "800+", label: "Active subscribers" },
-    { value: "4,500+", label: "Signals published" },
-  ],
-
-  // ── Sample items (card grid under "Results") ──────────────
-  sampleSectionTitle: "What our signals look like",
-  sampleSectionSubtext:
-    "Every signal is clear, actionable, and includes everything you need to execute the trade.",
-  sampleItems: [
-    {
-      asset: "BTC/USDT",
-      dir: "LONG" as "LONG" | "SHORT",
-      entry: "$41,200",
-      tp: ["$43,500", "$46,000", "$49,800"],
-      sl: "$39,400",
-      result: "+18.4%",
-      market: "Crypto",
-    },
-    {
-      asset: "EUR/USD",
-      dir: "SHORT" as "LONG" | "SHORT",
-      entry: "1.0850",
-      tp: ["1.0780", "1.0710", "1.0640"],
-      sl: "1.0910",
-      result: "+12.1%",
-      market: "Forex",
-    },
-    {
-      asset: "AAPL",
-      dir: "LONG" as "LONG" | "SHORT",
-      entry: "$178.50",
-      tp: ["$185.00", "$191.00"],
-      sl: "$173.00",
-      result: "+7.8%",
-      market: "Stocks",
-    },
+    { value: "6 checks", label: "Per verification" },
+    { value: "48hrs", label: "Average turnaround" },
+    { value: "VIA#", label: "Unique number assigned" },
+    { value: "100%", label: "Independent verification" },
   ],
 
   // ── How it works ──────────────────────────────────────────
   howItWorks: [
     {
       step: "01",
-      title: "Choose a plan",
-      desc: "Pick the plan that fits your needs. Pay securely via Whop — cancel monthly plans anytime.",
+      title: "Spot the Badge",
+      desc: "Look for the VIA badge on a tradesperson's van, website, or quote. It means they've applied and been independently checked.",
     },
     {
       step: "02",
-      title: "Get instant access",
-      desc: "After payment you immediately receive your private Discord and Telegram invite links on the confirmation page.",
+      title: "Search Company",
+      desc: "Enter the VIA number into our search tool. Instantly see their verified business details, checks passed, and last review date.",
     },
     {
       step: "03",
-      title: "Follow the signals",
-      desc: "Receive real-time alerts with full trade details — entry, targets, and stop-loss. Execute and track your results.",
+      title: "Checked or Not",
+      desc: "If they're VIA verified, you'll see a full public profile. If not found, the number isn't valid — simple as that.",
+    },
+  ],
+
+  // ── What we check ─────────────────────────────────────────
+  whatWeCheck: [
+    {
+      title: "Local Address",
+      desc: "We confirm the tradesperson operates from the stated address and serves the claimed area.",
+      icon: "MapPin",
+    },
+    {
+      title: "Business Type",
+      desc: "We verify the legal business structure — sole trader, limited company, or partnership — against public records.",
+      icon: "Building2",
+    },
+    {
+      title: "Public Liability Insurance",
+      desc: "We check that valid public liability insurance is held and current before issuing a VIA number.",
+      icon: "ShieldCheck",
+    },
+    {
+      title: "Trade Accreditations",
+      desc: "We verify relevant trade body memberships, certifications, and professional accreditations.",
+      icon: "Award",
+    },
+    {
+      title: "Digital Footprint",
+      desc: "We review online presence, reviews, social media, and any concerning digital history.",
+      icon: "Globe",
+    },
+    {
+      title: "Contact & Public Records",
+      desc: "We cross-reference contact details against Companies House, electoral roll, and public records.",
+      icon: "FileSearch",
     },
   ],
 
   // ── Testimonials ──────────────────────────────────────────
-  testimonialsSectionTitle: "Trusted by 800+ traders",
-  testimonialsSectionSubtext: "Real members, real results.",
+  testimonialsSectionTitle: "Trusted by UK tradespeople",
+  testimonialsSectionSubtext: "Real members building real trust.",
   testimonials: [
-    { name: "Alex R.", handle: "@alexr_trades", text: "Turned $5k into $18k in 3 months just following these signals. Best investment I've made.", stars: 5 },
-    { name: "Maria C.", handle: "@mariac_fx", text: "The Forex calls are incredibly precise. Win rate is consistently above 70%. Absolutely worth it.", stars: 5 },
-    { name: "James T.", handle: "@jamest_crypto", text: "I've tried 4 other signal groups. This is the only one that actually explains the reasoning.", stars: 5 },
-    { name: "Priya S.", handle: "@priya_trader", text: "The live Q&A sessions alone are worth the Pro subscription. Learned so much in 2 months.", stars: 5 },
-    { name: "Tom B.", handle: "@tombtrades", text: "Fast signals, clean Discord, great community. Went Lifetime after the first month.", stars: 5 },
-    { name: "Nina W.", handle: "@ninaw_fx", text: "Finally a signal provider that is transparent about losses too. Real trust-building.", stars: 5 },
+    { name: "Mark T.", handle: "Electrician, Manchester", text: "Getting VIA verified has genuinely helped me win more jobs. Customers mention it before I've even quoted.", stars: 5 },
+    { name: "Sarah K.", handle: "Plumber, Birmingham", text: "The verification process was straightforward and the VIA badge on my van gets comments all the time.", stars: 5 },
+    { name: "Dave R.", handle: "Builder, Leeds", text: "In a crowded market, having an independent body vouch for you is worth every penny of the £20 a month.", stars: 5 },
+    { name: "Chris M.", handle: "Roofer, Bristol", text: "I had my VIA number within 48 hours. Dashboard is clean, badge looks professional.", stars: 5 },
+    { name: "James H.", handle: "Gas Engineer, Glasgow", text: "Customers are increasingly asking if I'm VIA checked. It's becoming a recognised standard.", stars: 5 },
+    { name: "Rachel B.", handle: "Decorator, London", text: "The priority checking add-on was worth it — had my full profile live the same day.", stars: 5 },
   ],
 
   // ── Pricing section ───────────────────────────────────────
   pricingTitle: "Simple, transparent pricing",
   pricingSubtext:
-    "No hidden fees. Cancel monthly plans anytime. Lifetime is one payment, forever.",
+    "No hidden fees. Your VIA number, profile, badge, and public listing — all included.",
 
   planFeatures: {
-    starter: {
-      features: ["3–5 signals per week", "Crypto & Forex coverage", "Entry, TP & stop-loss levels", "Discord + Telegram access", "Weekly market recap"],
+    "via membership": {
+      features: [
+        "Unique VIA number assigned",
+        "Public VIA verified profile",
+        "Digital verification badge",
+        "VIA van sticker pack",
+        "Member dashboard access",
+        "Referral code",
+        "Cancel anytime",
+      ],
       highlight: false,
     },
-    pro: {
-      features: ["10–15 signals per week", "All markets (Crypto, Forex, Stocks)", "Entry, TP & stop-loss levels", "Discord + Telegram VIP channel", "Real-time alert notifications", "Weekly live Q&A session", "Full trade rationale included"],
+    "priority checking": {
+      features: [
+        "Everything in VIA Membership",
+        "Priority verification (same/next day)",
+        "Dedicated checker assigned",
+        "Fast-track profile publication",
+        "One-off payment",
+      ],
       highlight: true,
-    },
-    "lifetime vip": {
-      features: ["Everything in Pro, forever", "Priority 1-on-1 signal alerts", "All future plan upgrades included", "Discord + Telegram VIP lifetime", "Private group access"],
-      highlight: false,
     },
   } as Record<string, { features: string[]; highlight: boolean }>,
 
   // ── FAQ ───────────────────────────────────────────────────
   faqs: [
-    { q: "How are signals delivered?", a: "All signals are delivered instantly to both our private Discord server and Telegram channel. You'll get a notification the moment a new signal is posted." },
-    { q: "What markets do you cover?", a: "We cover Crypto (BTC, ETH, altcoins), Forex (major and minor pairs), and Stocks/Options. The Starter plan covers Crypto & Forex; Pro covers all markets." },
-    { q: "What does a signal include?", a: "Every signal includes the asset, direction (long/short), entry price, take-profit targets (TP1, TP2, TP3), and a stop-loss level. Pro subscribers also receive the full trade rationale." },
-    { q: "Can I cancel anytime?", a: "Monthly plans can be cancelled anytime — no contracts, no hidden fees. Your access continues until the end of your billing period." },
-    { q: "How do I get access after paying?", a: "Immediately after payment you'll receive your Discord and Telegram invite links on the confirmation page and via email." },
-    { q: "What's your win rate?", a: "Our historical win rate across all signals is ~68–72%. We publish our full track record, including losses, in the Discord so you can verify everything yourself." },
+    { q: "How long does the verification take?", a: "Standard verification typically completes within 48 hours of a complete application. With the Priority Checking add-on, most verifications are completed same day or next working day." },
+    { q: "What do you actually check?", a: "We run 6 independent checks: local address, business type and structure, public liability insurance, trade accreditations, digital footprint, and contact/public records. Each check is confirmed or flagged in your public profile." },
+    { q: "What is a VIA number?", a: "A VIA number (e.g. VIA1042) is a unique identifier assigned to your business once your verification is approved. It appears on your public profile and badge. Anyone can search it to verify your status instantly." },
+    { q: "What happens if I fail a check?", a: "If we cannot verify a specific item, it will show as unverified on your profile rather than confirmed. We'll contact you to give you the opportunity to provide additional documentation before rejecting an application." },
+    { q: "Can I cancel my membership?", a: "Yes. Monthly membership can be cancelled at any time. Your VIA profile remains visible for the remainder of your paid period, then moves to inactive status." },
+    { q: "Can customers search my VIA number for free?", a: "Yes, entirely. The public VIA number search is free for everyone. The fee is paid by tradespeople to get verified and maintain their active status." },
   ],
 
   // ── Final CTA ─────────────────────────────────────────────
   finalCta: {
-    headline: "Ready to get your edge?",
-    subtext: "Join 800+ traders already using our signals to trade smarter every day.",
-    buttonText: "Choose a Plan",
+    headline: "Stand out. Get verified.",
+    subtext: "Join VIA Secured and give your customers the confidence to choose you.",
+    buttonText: "Apply for VIA Membership",
   },
 
   // ── Legal pages ───────────────────────────────────────────
   disclaimerParagraphs: [
-    "Trading financial instruments involves significant risk and is not suitable for all investors. Past performance is not indicative of future results.",
-    "We provide educational information only. Nothing on this site constitutes financial advice, investment advice, or a recommendation to buy or sell any asset.",
-    "You should never invest money you cannot afford to lose. Always conduct your own research and consult a licensed financial advisor before making any investment decisions.",
-    "Cryptocurrency, forex, and stock markets are highly volatile. Prices can move rapidly and unpredictably. We accept no liability for losses incurred as a result of following any signals or information published on this site.",
+    "VIA Secured provides independent verification services for UK tradespeople. Our checks are based on information available at the time of verification and should not be taken as a guarantee of future conduct or service quality.",
+    "Verification status may change. We recommend always re-checking a VIA number before engaging a tradesperson for significant work.",
+    "VIA Secured accepts no liability for work carried out by verified or unverified tradespeople. Our service is informational only.",
   ],
 
   termsExtraSections: [
-    { heading: "Disclaimer", body: "All signals are provided for informational purposes only and do not constitute financial advice. See our Risk Disclaimer for full details." },
+    { heading: "Verification Standards", body: "VIA Secured applies a consistent set of verification criteria to all applicants. Criteria and check types may be updated periodically. Members will be notified of material changes." },
   ] as { heading: string; body: string }[],
 
   // ── Post-payment success page ──────────────────────────────
   successPage: {
-    heading: "You're in!",
-    subtext: "Payment confirmed. Join the channels below to get started.",
+    heading: "Application received!",
+    subtext: "We'll begin your verification shortly. Check your email for next steps.",
   },
 
   // ── Admin section labels ───────────────────────────────────
   admin: {
     products:  { singular: "Product",     plural: "Products" },
-    customers: { singular: "Customer",    plural: "Customers" },
+    customers: { singular: "Member",      plural: "Members" },
     access:    { singular: "Access Link", plural: "Access" },
     services:  { singular: "Service",     plural: "Services" },
     leads:     { singular: "Lead",        plural: "Leads" },
@@ -191,42 +191,44 @@ export const APP_CONFIG = {
 
   // ── Admin module toggles ───────────────────────────────────
   /**
-   * Enable or disable each admin panel module.
+   * VIA Secured preset — only VIA-relevant modules enabled.
    * Disabled modules are hidden from navigation AND blocked from direct URL access.
-   * Set a BUSINESS_PRESET below to auto-configure these for your business type.
+   * Original template modules are kept in code (not deleted) for future reactivation.
    */
   adminModules: {
     // Core
     overview:         true,
     settings:         true,
     activity:         true,
-    analytics:        true,
-    // Products / Shop
-    products:         true,
-    customers:        true,
-    access:           true,
-    // Services & Bookings
-    services:         false,
-    bookings:         false,
-    leads:            false,
-    // Orders
-    orders:           false,
-    // Content
-    reviews:          false,
-    gallery:          false,
-    messages:         false,
+    analytics:        false, // VIA: disabled — no revenue analytics needed at MVP
+    // Shop (VIA: disabled — no product shop)
+    products:         false, // VIA: disabled
+    customers:        false, // VIA: disabled — replaced by members/applications in Task 3
+    access:           false, // VIA: disabled
+    // Services & Bookings (VIA: disabled)
+    services:         false, // VIA: disabled
+    bookings:         false, // VIA: disabled
+    leads:            true,  // VIA: enabled — lead pipeline
+    // Orders (VIA: disabled)
+    orders:           false, // VIA: disabled
+    // Content (VIA: disabled)
+    reviews:          false, // VIA: disabled
+    gallery:          false, // VIA: disabled
+    messages:         false, // VIA: disabled
     // Disabled stubs
-    content:          false,
-    team:             false,
+    content:          false, // VIA: disabled
+    team:             false, // VIA: disabled
+    // VIA-specific (added in Task 3)
+    applications:     false, // VIA: stub — enabled in admin dashboard task
+    members:          false, // VIA: stub — enabled in admin dashboard task
+    payment_links:    false, // VIA: stub — enabled in admin dashboard task
   } as Record<string, boolean>,
 };
 
 // ── Business Presets ──────────────────────────────────────────────────────────
 /**
- * Copy the modules block from a preset into APP_CONFIG.adminModules
- * to quickly configure the admin panel for a specific business type.
- *
- * Usage: replace adminModules above with the preset's modules object.
+ * Original template presets preserved for reference.
+ * VIA Secured uses its own adminModules config above.
  */
 export const BUSINESS_PRESETS = {
   /** Full product shop with orders, reviews, gallery */
@@ -241,17 +243,6 @@ export const BUSINESS_PRESETS = {
       content: false, team: false,
     },
   },
-  /** Food takeaway / restaurant order tracker */
-  takeaway: {
-    ctaLabel: "Order Now",
-    ctaLink: "/shop",
-    modules: {
-      overview: true, settings: true, activity: true, analytics: true,
-      products: true, orders: true, reviews: true, messages: true,
-      customers: false, services: false, bookings: false, leads: false,
-      access: false, gallery: false, content: false, team: false,
-    },
-  },
   /** Tradesman / contractor — leads, bookings, services, gallery */
   tradesman: {
     ctaLabel: "Get a Free Quote",
@@ -259,18 +250,6 @@ export const BUSINESS_PRESETS = {
     modules: {
       overview: true, settings: true, activity: true,
       services: true, leads: true, bookings: true, reviews: true,
-      gallery: true, messages: true,
-      products: false, customers: false, orders: false, access: false,
-      analytics: false, content: false, team: false,
-    },
-  },
-  /** Salon / clinic / service business with bookings */
-  booking_business: {
-    ctaLabel: "Book Now",
-    ctaLink: "/book",
-    modules: {
-      overview: true, settings: true, activity: true,
-      services: true, bookings: true, leads: true, reviews: true,
       gallery: true, messages: true,
       products: false, customers: false, orders: false, access: false,
       analytics: false, content: false, team: false,
@@ -286,18 +265,6 @@ export const BUSINESS_PRESETS = {
       messages: true,
       services: false, bookings: false, leads: false, orders: false,
       gallery: false, content: false, team: false,
-    },
-  },
-  /** Freelancer / creative portfolio */
-  portfolio: {
-    ctaLabel: "View My Work",
-    ctaLink: "/gallery",
-    modules: {
-      overview: true, settings: true,
-      gallery: true, services: true, reviews: true, leads: true,
-      messages: true,
-      products: false, customers: false, bookings: false, orders: false,
-      access: false, analytics: false, activity: false, content: false, team: false,
     },
   },
 } as const;
