@@ -73,6 +73,7 @@ export default function MemberProfilePage() {
   const [planChangeVal, setPlanChangeVal]       = useState<string>("");
   const [planChangeNote, setPlanChangeNote]     = useState("");
   const [planChanging, setPlanChanging]         = useState(false);
+  const [planChangeConfirm, setPlanChangeConfirm] = useState(false);
   const [planChangeSuccess, setPlanChangeSuccess] = useState(false);
   const [planChangeError, setPlanChangeError]   = useState<string | null>(null);
 
@@ -351,16 +352,38 @@ export default function MemberProfilePage() {
                       className="w-full h-9 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={changePlan}
-                    disabled={planChanging || planChangeVal === (profile.application.plan_code ?? "")}
-                    variant="outline"
-                    className="h-9 whitespace-nowrap"
-                  >
-                    {planChanging ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
-                    {planChanging ? "Saving…" : "Update Plan"}
-                  </Button>
+                  {planChangeConfirm ? (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-9 whitespace-nowrap"
+                        onClick={() => { setPlanChangeConfirm(false); changePlan(); }}
+                        disabled={planChanging}
+                      >
+                        {planChanging ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
+                        Confirm
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9"
+                        onClick={() => setPlanChangeConfirm(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => setPlanChangeConfirm(true)}
+                      disabled={planChanging || planChangeVal === (profile.application.plan_code ?? "")}
+                      variant="outline"
+                      className="h-9 whitespace-nowrap"
+                    >
+                      Update Plan
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

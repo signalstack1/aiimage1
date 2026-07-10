@@ -137,6 +137,7 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
   const [planChangeVal, setPlanChangeVal] = useState<string>("");
   const [planChangeNote, setPlanChangeNote] = useState("");
   const [planChanging, setPlanChanging] = useState(false);
+  const [planChangeConfirm, setPlanChangeConfirm] = useState(false);
   const [planChangeSuccess, setPlanChangeSuccess] = useState(false);
   const [planChangeError, setPlanChangeError] = useState<string|null>(null);
   const token = sessionStorage.getItem("admin_token") || "";
@@ -764,16 +765,38 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
                   placeholder="Reason for change (optional)"
                   className="w-full h-9 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
-                <Button
-                  size="sm"
-                  onClick={changePlan}
-                  disabled={planChanging || planChangeVal === (app.plan_code ?? "")}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {planChanging ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
-                  {planChanging ? "Saving…" : "Update Plan"}
-                </Button>
+                {planChangeConfirm ? (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => { setPlanChangeConfirm(false); changePlan(); }}
+                      disabled={planChanging}
+                    >
+                      {planChanging ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
+                      Confirm
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setPlanChangeConfirm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => setPlanChangeConfirm(true)}
+                    disabled={planChanging || planChangeVal === (app.plan_code ?? "")}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Update Plan
+                  </Button>
+                )}
               </div>
             </div>
 

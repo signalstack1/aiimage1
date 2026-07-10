@@ -11,6 +11,32 @@ export const config = {
 
 const DOC_BUCKET = "member-documents";
 
+// ── Plan entitlements (mirrored from frontend app.ts for server-side checks) ──
+const PLAN_ENTITLEMENTS: Record<string, Record<string, boolean | number | string>> = {
+  tvc_basic: {
+    enhanced_profile: false,
+    portfolio_access: false,
+    social_links: false,
+    testimonial_access: false,
+    monthly_image_limit: 0,
+    priority_verification: false,
+  },
+  tvc_plus: {
+    enhanced_profile: true,
+    portfolio_access: true,
+    social_links: true,
+    testimonial_access: true,
+    monthly_image_limit: 20,
+    priority_verification: true,
+  },
+};
+
+function getPlanEntitlements(planCode: string | null | undefined) {
+  if (planCode && PLAN_ENTITLEMENTS[planCode]) return PLAN_ENTITLEMENTS[planCode];
+  // null / legacy → full access
+  return { enhanced_profile: true, portfolio_access: true, social_links: true, testimonial_access: true, monthly_image_limit: 20, priority_verification: false };
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function ok(res: any, data: any, status = 200) {
@@ -342,9 +368,12 @@ export default async function handler(req: any, res: any) {
           const prevPlan = currentAppl?.plan_code ?? "unassigned";
           const nextPlan = newPlanCode ?? "unassigned";
           const auditTs = new Date().toISOString();
+          const adminIp = ((req as any).headers?.['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+            || (req as any).headers?.['x-real-ip']
+            || 'unknown';
           const noteBody = plan_change_note?.trim()
-            ? `[${auditTs}] Plan changed by admin: ${prevPlan} → ${nextPlan}. Notes: ${plan_change_note.trim()}`
-            : `[${auditTs}] Plan changed by admin: ${prevPlan} → ${nextPlan}.`;
+            ? `[${auditTs}] Plan changed by admin (IP: ${adminIp}): ${prevPlan} → ${nextPlan}. Notes: ${plan_change_note.trim()}`
+            : `[${auditTs}] Plan changed by admin (IP: ${adminIp}): ${prevPlan} → ${nextPlan}.`;
           try { await supabase.from("admin_notes").insert({ application_id: g2, body: noteBody }); } catch { /* non-fatal */ }
         }
         ok(res, { ok: true });
@@ -619,14 +648,12 @@ export default async function handler(req: any, res: any) {
         const { business_name, trade_type, location, website, contact_phone, contact_enabled, description } = req.body ?? {};
 
         // ── Server-side plan entitlement check ─────────────────────────────
-        // description (business bio) is an enhanced_profile feature — Plus/legacy only
         if (description !== undefined) {
           const { data: bizForPlan } = await supabase.from("businesses").select("id").eq("user_id", userId).maybeSingle();
           if (bizForPlan?.id) {
             const { data: applForPlan } = await supabase.from("applications").select("plan_code").eq("business_id", bizForPlan.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
             const pc = (applForPlan as any)?.plan_code ?? null;
-            const hasEnhancedProfile = pc !== "tvc_basic"; // tvc_plus + legacy get it; basic does not
-            if (!hasEnhancedProfile) { fail(res, "Business description is a TVC Plus feature. Upgrade to access this field.", 403); return; }
+            if (!getPlanEntitlements(pc).enhanced_profile) { fail(res, "Business description is a TVC Plus feature. Upgrade to access this field.", 403); return; }
           }
         }
         // ──────────────────────────────────────────────────────────────────

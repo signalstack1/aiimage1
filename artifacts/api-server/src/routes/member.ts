@@ -8,6 +8,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { logger } from "../lib/logger";
+import { getPlanEntitlements } from "../lib/plan-entitlements";
 
 const router = Router();
 
@@ -139,14 +140,12 @@ router.patch("/member/profile", requireMember, async (req: AuthedRequest, res) =
 
   try {
     // ── Server-side plan entitlement check ──────────────────────────────────
-    // description (business bio) is an enhanced_profile feature — Plus/legacy only; not Basic
     if (description !== undefined) {
       const { data: bizForPlan } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).maybeSingle();
       if (bizForPlan?.id) {
         const { data: applForPlan } = await supabase.from("applications").select("plan_code").eq("business_id", (bizForPlan as any).id).order("created_at", { ascending: false }).limit(1).maybeSingle();
         const pc = (applForPlan as any)?.plan_code ?? null;
-        const hasEnhancedProfile = pc !== "tvc_basic";
-        if (!hasEnhancedProfile) {
+        if (!getPlanEntitlements(pc).enhanced_profile) {
           return err(res, "Business description is a TVC Plus feature. Upgrade to access this field.", 403);
         }
       }

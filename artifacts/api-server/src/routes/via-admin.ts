@@ -385,9 +385,13 @@ router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
       // Audit log to admin_notes
       const oldPlan = currentAppl?.plan_code ?? null;
       const auditTs = new Date().toISOString();
+      const adminIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+        || req.headers['x-real-ip'] as string
+        || req.ip
+        || 'unknown';
       const noteBody = plan_change_note?.trim()
-        ? `[${auditTs}] Plan changed by admin: ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}. Notes: ${plan_change_note.trim()}`
-        : `[${auditTs}] Plan changed by admin: ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}.`;
+        ? `[${auditTs}] Plan changed by admin (IP: ${adminIp}): ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}. Notes: ${plan_change_note.trim()}`
+        : `[${auditTs}] Plan changed by admin (IP: ${adminIp}): ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}.`;
       await supabase.from("admin_notes").insert({
         application_id: id,
         body: noteBody,

@@ -184,15 +184,15 @@ export default function AdminApplicationsPage() {
                       <td className="px-4 py-3.5 hidden md:table-cell">
                         <div className="flex flex-col gap-1">
                           <span className="text-muted-foreground">{biz?.trade_type ?? "—"}</span>
-                          {app.plan_code && (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full w-fit ${
-                              app.plan_code === "tvc_plus"
-                                ? "bg-primary/10 text-primary border border-primary/20"
-                                : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-                            }`}>
-                              {app.plan_code === "tvc_plus" ? "Plus" : "Basic"}
-                            </span>
-                          )}
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full w-fit ${
+                            app.plan_code === "tvc_plus"
+                              ? "bg-primary/10 text-primary border border-primary/20"
+                              : app.plan_code === "tvc_basic"
+                              ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                              : "bg-muted text-muted-foreground border border-border"
+                          }`}>
+                            {app.plan_code === "tvc_plus" ? "TVC Plus" : app.plan_code === "tvc_basic" ? "TVC Basic" : "Legacy"}
+                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-muted-foreground hidden lg:table-cell">{biz?.location ?? "—"}</td>
