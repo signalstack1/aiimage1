@@ -110,9 +110,17 @@ export default async function handler(req: any, res: any) {
         .eq("applications.status", "approved")
         .single();
       if (bErr || !business) { fail(res, "Not found", 404); return; }
+
+      // Step 5: contact_enabled = false → neutral inactive response; do not expose details
+      if (!(business as any).contact_enabled) {
+        ok(res, { status: "inactive", via_number: business.via_number });
+        return;
+      }
+
       const app = (business as any).applications?.[0];
+      // Legacy (null plan_code) → basic tier. Only tvc_plus → plus tier.
       const planCode: string | null = app?.plan_code ?? null;
-      const isPlus = getPlanEntitlements(planCode).enhanced_profile;
+      const isPlus = planCode === "tvc_plus";
       const bizId = (business as any).id;
 
       const base = {

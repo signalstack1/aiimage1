@@ -68,9 +68,15 @@ router.get("/via/verify/:viaNumber", async (req, res) => {
 
     if (bErr || !business) return res.status(404).json({ error: "Not found" });
 
+    // Step 5: contact_enabled = false → neutral inactive response; do not expose details
+    if (!(business as any).contact_enabled) {
+      return ok(res, { status: "inactive", via_number: business.via_number });
+    }
+
     const app = (business as any).applications?.[0];
+    // Legacy (null plan_code) → basic tier. Only tvc_plus → plus tier.
     const planCode: string | null = app?.plan_code ?? null;
-    const isPlus = getPlanEntitlements(planCode).enhanced_profile;
+    const isPlus = planCode === "tvc_plus";
     const bizId = (business as any).id;
 
     const base = {

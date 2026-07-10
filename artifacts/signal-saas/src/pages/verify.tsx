@@ -43,16 +43,16 @@ interface PublicTestimonial {
 
 interface PublicProfile {
   via_number: string;
-  business_name: string;
-  trade_type: string;
-  location: string;
-  website: string | null;
-  status: "approved" | "pending" | "rejected" | "expired";
-  last_checked: string | null;
-  contact_phone: string | null;
-  contact_enabled: boolean;
-  checks: VerificationCheck[];
-  plan_tier: "basic" | "plus";
+  business_name?: string;
+  trade_type?: string;
+  location?: string;
+  website?: string | null;
+  status: "approved" | "inactive" | "pending" | "rejected" | "expired";
+  last_checked?: string | null;
+  contact_phone?: string | null;
+  contact_enabled?: boolean;
+  checks?: VerificationCheck[];
+  plan_tier?: "basic" | "plus";
   // Plus only:
   business_intro?: string | null;
   portfolio?: PortfolioImage[];
@@ -91,11 +91,12 @@ async function fetchProfile(viaNumber: string): Promise<PublicProfile | null> {
 }
 
 function StatusBadge({ status }: { status: PublicProfile["status"] }) {
-  const map = {
+  const map: Record<string, { label: string; class: string }> = {
     approved: { label: "TVC Verified",   class: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
     pending:  { label: "Pending Review", class: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
     rejected: { label: "Not Verified",   class: "bg-red-500/15 text-red-400 border-red-500/30" },
     expired:  { label: "Expired",        class: "bg-muted text-muted-foreground border-border" },
+    inactive: { label: "Not Active",     class: "bg-muted text-muted-foreground border-border" },
   };
   const s = map[status] ?? map.pending;
   return <Badge className={`border ${s.class} text-xs font-semibold px-3 py-1`}>{s.label}</Badge>;
@@ -381,7 +382,7 @@ function TestimonialForm({ viaNumber }: { viaNumber: string }) {
 function ProfileView({ profile }: { profile: PublicProfile }) {
   const allChecks = Object.keys(CHECK_LABELS);
   const checkMap: Record<string, VerificationCheck["status"]> = {};
-  for (const c of profile.checks) checkMap[c.check_type] = c.status;
+  for (const c of profile.checks ?? []) checkMap[c.check_type] = c.status;
   const isPlus = profile.plan_tier === "plus";
 
   return (
@@ -607,6 +608,21 @@ export function VerifyProfilePage({ viaNumber }: { viaNumber: string }) {
           </div>
         )}
 
+        {profile && profile !== "loading" && profile !== "not_found" && profile.status === "inactive" && (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
+              <ShieldCheck className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-2xl font-bold mb-3">This TVC number is not currently active</h2>
+            <p className="text-muted-foreground mb-8 max-w-sm mx-auto leading-relaxed">
+              The TVC number <span className="font-mono font-semibold text-foreground">{profile.via_number}</span> is not available for public viewing at this time.
+            </p>
+            <Button variant="outline" asChild>
+              <Link href="/verify">Search another number</Link>
+            </Button>
+          </div>
+        )}
+
         {profile === "not_found" && (
           <div className="text-center py-20">
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
@@ -628,7 +644,7 @@ export function VerifyProfilePage({ viaNumber }: { viaNumber: string }) {
           </div>
         )}
 
-        {profile && profile !== "loading" && profile !== "not_found" && (
+        {profile && profile !== "loading" && profile !== "not_found" && profile.status === "approved" && (
           <ProfileView profile={profile} />
         )}
       </div>
