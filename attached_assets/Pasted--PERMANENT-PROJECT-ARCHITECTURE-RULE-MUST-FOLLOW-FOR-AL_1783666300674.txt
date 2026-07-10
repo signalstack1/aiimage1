@@ -1,0 +1,359 @@
+## PERMANENT PROJECT ARCHITECTURE RULE — MUST FOLLOW FOR ALL FUTURE WORK
+
+I want you to inspect, enforce, and permanently document the architecture of this project.
+
+This is a mandatory project rule and must be followed for every future feature, fix, refactor, integration, deployment, and database change.
+
+### CORE ARCHITECTURE
+
+The required architecture is:
+
+* Replit = development and building environment only
+* Supabase = complete production backend and source of truth
+* Vercel = complete production frontend hosting and production runtime
+* GitHub = source code repository and deployment source where applicable
+
+Replit must NOT become a required production dependency.
+
+The live business must continue operating even if:
+
+* the Replit project is stopped
+* the Replit project is deleted
+* the Replit account is unavailable
+* the project is transferred to a buyer without the original Replit workspace
+
+---
+
+## 1. SUPABASE MUST OWN THE BACKEND
+
+Audit the entire project and ensure all persistent production backend functionality is correctly hosted through Supabase where appropriate.
+
+This includes:
+
+* PostgreSQL database
+* database tables
+* authentication
+* user accounts
+* user profiles
+* Row Level Security policies
+* database functions
+* database triggers
+* storage buckets
+* uploaded files
+* uploaded images
+* persistent application data
+* business data
+* admin data
+* customer data
+* application records
+* production state
+* server-side database logic where appropriate
+* Supabase Edge Functions where backend server-side execution is required and suitable
+
+Supabase must remain the single source of truth for persistent production data.
+
+Do not store production data permanently inside:
+
+* Replit filesystem
+* local JSON files
+* SQLite inside Replit
+* Replit database products
+* Replit-specific storage
+* temporary local files
+* browser localStorage where the data should actually be persistent server-side business data
+
+localStorage may only be used for genuinely non-critical client preferences where appropriate, never as the authoritative source of business or customer data.
+
+---
+
+## 2. VERCEL MUST OWN THE LIVE FRONTEND
+
+The production website/application must run from Vercel.
+
+Ensure:
+
+* the frontend builds correctly on Vercel
+* production routes work on Vercel
+* refreshes on nested routes work correctly
+* required environment variables are configured for Vercel
+* no frontend feature depends on Replit being online
+* no production URL points to a Replit development server
+* no production API request accidentally calls localhost or a Replit URL
+* no assets required in production are served only from Replit
+* no hidden Replit runtime dependency exists
+
+Where serverless production runtime logic is required, use the correct production architecture deliberately. Do not silently create a dependency on Replit.
+
+---
+
+## 3. REPLIT IS THE BUILDER ONLY
+
+Treat Replit as:
+
+* coding environment
+* AI development assistant
+* testing environment
+* debugging environment
+* temporary development preview
+
+Do NOT treat Replit as:
+
+* production database
+* production storage
+* required live backend
+* required production API host
+* permanent production server
+* source of persistent customer data
+* dependency required for the live business to function
+
+Any Replit-specific development configuration must remain development-only.
+
+---
+
+## 4. AUDIT THE CURRENT PROJECT NOW
+
+Perform a full architecture audit of the existing codebase.
+
+Search for and identify:
+
+* Replit database usage
+* Replit object storage usage
+* Replit-specific APIs
+* Replit-specific production dependencies
+* localhost URLs
+* hardcoded development URLs
+* replit.dev URLs
+* repl.co URLs
+* temporary backend servers
+* Express servers running only in Replit
+* SQLite databases
+* JSON-file persistence
+* filesystem persistence
+* local upload directories
+* localStorage being incorrectly used as a database
+* mock data still used in production
+* fake authentication
+* duplicate backend systems
+* production API endpoints hosted only through Replit
+* secrets embedded in frontend code
+* service_role keys exposed to browser code
+* backend operations incorrectly executed client-side
+* environment variables that exist only in Replit Secrets
+* code that would fail if Replit were switched off
+
+For every issue found:
+
+1. explain what it is
+2. explain why it is a production dependency or risk
+3. move/refactor it to the correct architecture
+4. verify the replacement works
+
+Do not delete working functionality without first understanding and safely replacing it.
+
+---
+
+## 5. ENVIRONMENT VARIABLE RULES
+
+Audit all environment variables and classify them correctly.
+
+### Frontend-safe variables
+
+Only public/client-safe variables may be exposed to browser code.
+
+Examples:
+
+* Supabase project URL
+* Supabase anon/publishable key
+* explicitly public configuration values
+
+### Secret server-side variables
+
+Never expose secrets to frontend/browser code.
+
+Examples:
+
+* Supabase service_role key
+* private API keys
+* webhook secrets
+* admin secrets
+* signing secrets
+* private third-party credentials
+
+Ensure secret keys are only used in secure server-side environments.
+
+Never place the Supabase service_role key in:
+
+* VITE_ variables
+* NEXT_PUBLIC_ variables
+* frontend source code
+* browser bundles
+* localStorage
+* public GitHub code
+
+If secure server-side logic is needed, implement it using an appropriate production server-side environment such as Supabase Edge Functions or properly designed Vercel server-side functions, depending on the architecture and requirement.
+
+---
+
+## 6. FUTURE DEVELOPMENT RULE
+
+From now on, before implementing any new feature, determine where it belongs:
+
+### Frontend/UI
+
+Place in the frontend codebase and ensure it deploys to Vercel.
+
+### Persistent data
+
+Store in Supabase PostgreSQL.
+
+### Authentication
+
+Use Supabase Auth.
+
+### File/image storage
+
+Use Supabase Storage unless explicitly instructed otherwise.
+
+### Database permissions
+
+Use Supabase RLS.
+
+### Database automation
+
+Use Supabase functions/triggers where appropriate.
+
+### Secure backend execution
+
+Use an appropriate production server-side environment, preferably Supabase Edge Functions when closely tied to Supabase/backend operations, or Vercel server-side functions where architecturally appropriate.
+
+### Development/testing
+
+Replit may be used temporarily, but must not become a production dependency.
+
+---
+
+## 7. PERMANENT PROJECT MEMORY / DOCUMENTATION
+
+Create or update a permanent architecture document in the repository named:
+
+ARCHITECTURE.md
+
+It must clearly state:
+
+* Replit is builder/development environment only
+* Supabase is the production backend and persistent source of truth
+* Vercel is the production frontend host/runtime
+* GitHub is the source repository
+* no feature may introduce a required Replit production dependency
+* all future AI coding work must respect this architecture
+* all persistent business data must use Supabase
+* all secrets must remain server-side
+* production must continue working if Replit is unavailable
+
+Also add a concise version of these rules to the most appropriate AI instruction file used by this project, if one exists.
+
+Check for files such as:
+
+* AGENTS.md
+* replit.md
+* .replit-related instruction files
+* project instruction documentation
+* AI development instruction files
+
+If an appropriate persistent AI instruction file exists, update it.
+
+If none exists, create an appropriate project-level instruction file so future Replit AI sessions can easily discover and follow these architecture rules.
+
+Do not overwrite useful existing instructions. Merge these rules safely.
+
+---
+
+## 8. HANDOVER AND SALE READINESS
+
+This project may be sold or transferred to another owner.
+
+Therefore ensure the architecture supports clean transfer of:
+
+* GitHub repository
+* Vercel project
+* Supabase project
+* domain
+* external payment accounts/payment links where applicable
+* third-party API credentials
+
+The buyer must not need access to my original Replit account for the business to continue operating.
+
+Document all required production environment variables by NAME ONLY.
+
+Never place secret values inside documentation.
+
+Create or update:
+
+ENVIRONMENT_VARIABLES.md
+
+Include:
+
+* variable name
+* where it is configured
+* whether it is public or secret
+* what service it belongs to
+* whether it is required for production
+
+Do not expose actual secret values.
+
+---
+
+## 9. VERIFICATION TEST
+
+After the audit and any safe fixes, verify:
+
+1. frontend production build succeeds
+2. Vercel deployment architecture is valid
+3. Supabase connection works
+4. authentication works
+5. database reads work
+6. database writes work
+7. admin operations work
+8. customer/user operations work
+9. storage uploads work if applicable
+10. storage retrieval works if applicable
+11. protected routes work
+12. RLS behaves correctly
+13. no secret keys are exposed client-side
+14. no production functionality requires Replit
+15. no production request points to localhost
+16. no production request points to a Replit-hosted backend
+17. application can function with the Replit development environment offline
+
+---
+
+## 10. IMPORTANT EXECUTION RULE
+
+Do not blindly rewrite the project.
+
+First:
+
+1. inspect
+2. audit
+3. report findings
+4. identify risks
+5. make only necessary safe changes
+6. test each change
+7. verify production architecture
+
+Preserve all existing working functionality.
+
+At completion, provide me with a clear report containing:
+
+* Current architecture found
+* Replit dependencies found
+* Supabase backend components confirmed
+* Vercel frontend components confirmed
+* Security issues found
+* Changes made
+* Files created or updated
+* Environment variables required
+* Anything still requiring manual action from me
+* Final verdict: whether Replit can be completely offline without affecting the live production business
+
+This architecture rule is permanent and must be followed for all future work on this project.
