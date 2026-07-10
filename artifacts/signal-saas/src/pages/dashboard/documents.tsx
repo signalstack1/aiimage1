@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   FileText, Upload, Trash2, ShieldCheck, Award, FileCheck,
   AlertCircle, CheckCircle2, ExternalLink, MapPin, HelpCircle,
-  Clock, XCircle, CalendarDays,
+  Clock, XCircle, CalendarDays, AlertTriangle, RefreshCw,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -113,15 +113,22 @@ export default function DashboardDocuments() {
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [deleting, setDeleting]   = useState<Record<string, boolean>>({});
   const [errors, setErrors]       = useState<Record<string, string>>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const loadDocs = async () => {
+    setLoadError(null);
     try {
       const res = await fetchWithAuth(`${BASE_URL}/api/member/documents`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        setLoadError("Documents couldn't be loaded. Please try again.");
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) setDocs(data);
-    } catch { }
+    } catch {
+      setLoadError("Documents couldn't be loaded. Check your connection and try again.");
+    }
   };
 
   useEffect(() => { loadDocs(); }, []);
@@ -201,6 +208,19 @@ export default function DashboardDocuments() {
         <p className="text-muted-foreground mb-8">
           Upload supporting documents for your verification. You can upload now or add more at any time — our team reviews these as part of the checking process.
         </p>
+
+        {loadError && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+              <p className="text-sm text-destructive">{loadError}</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={loadDocs} className="shrink-0 gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
+            </Button>
+          </div>
+        )}
 
         <div className="space-y-6">
           {SECTIONS.map(({ type, icon: Icon, label, description }) => {

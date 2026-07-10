@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCheck, Circle, CheckCircle2 } from "lucide-react";
+import { Bell, CheckCheck, Circle, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -20,14 +20,22 @@ export default function DashboardNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading]   = useState(true);
   const [marking, setMarking]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
   const load = async () => {
+    setError(null);
+    setLoading(true);
     try {
       const res = await fetchWithAuth(`${BASE_URL}/api/member/notifications`);
-      if (!res.ok) { setLoading(false); return; }
-      const data = await res.json();
-      if (Array.isArray(data)) setNotifications(data);
-    } catch { /* silent */ } finally {
+      if (!res.ok) {
+        setError("Notifications couldn't be loaded. Please try again.");
+      } else {
+        const data = await res.json();
+        if (Array.isArray(data)) setNotifications(data);
+      }
+    } catch {
+      setError("Notifications couldn't be loaded. Check your connection and try again.");
+    } finally {
       setLoading(false);
     }
   };
@@ -78,7 +86,20 @@ export default function DashboardNotifications() {
           </div>
         )}
 
-        {!loading && notifications.length === 0 && (
+        {!loading && error && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={load} className="shrink-0 gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
+            </Button>
+          </div>
+        )}
+
+        {!loading && !error && notifications.length === 0 && (
           <div className="text-center py-20 border border-dashed border-border rounded-2xl">
             <Bell className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm font-semibold text-muted-foreground">No notifications yet</p>
@@ -86,7 +107,7 @@ export default function DashboardNotifications() {
           </div>
         )}
 
-        {!loading && notifications.length > 0 && (
+        {!loading && !error && notifications.length > 0 && (
           <div className="space-y-3">
             {notifications.map((n) => (
               <div

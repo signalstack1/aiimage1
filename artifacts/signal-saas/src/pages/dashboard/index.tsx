@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ShieldCheck, User, FileText, Award, Bell, CreditCard,
   CheckCircle2, XCircle, Clock, ArrowRight, AlertTriangle, ExternalLink,
-  Copy, Check, Lock, Truck, Package,
+  Copy, Check, Lock, Truck, Package, RefreshCw,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -80,28 +80,29 @@ export default function DashboardHome() {
   const [paymentLink, setPaymentLink] = useState<string | null>(null);
   const [stickerOrders, setStickerOrders] = useState<StickerOrder[]>([]);
   const [copied, setCopied] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const planCode = member?.application?.plan_code ?? null;
   const entitlements = getPlanEntitlements(planCode);
 
   useEffect(() => {
-    fetchWithAuth(`${BASE_URL}/api/member/verification-checks`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => { if (Array.isArray(data)) setChecks(data); })
-      .catch(() => {});
+    setLoadError(null);
 
-    fetchWithAuth(`${BASE_URL}/api/member/notifications`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => { if (Array.isArray(data)) setNotifCount(data.filter((n: any) => !n.is_read).length); })
-      .catch(() => {});
+    const p1 = fetchWithAuth(`${BASE_URL}/api/member/verification-checks`)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(data => { if (Array.isArray(data)) setChecks(data); });
 
-    fetchWithAuth(`${BASE_URL}/api/member/sticker-orders`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => { if (Array.isArray(data)) setStickerOrders(data); })
-      .catch(() => {});
+    const p2 = fetchWithAuth(`${BASE_URL}/api/member/notifications`)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(data => { if (Array.isArray(data)) setNotifCount(data.filter((n: any) => !n.is_read).length); });
 
-    fetch(`${BASE_URL}/api/payment-links`)
-      .then(r => r.ok ? r.json() : [])
+    const p3 = fetchWithAuth(`${BASE_URL}/api/member/sticker-orders`)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(data => { if (Array.isArray(data)) setStickerOrders(data); });
+
+    const p4 = fetch(`${BASE_URL}/api/payment-links`)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => {
         if (Array.isArray(data)) {
           const slug = planCode === "tvc_basic" ? "tvc-basic"
@@ -110,9 +111,15 @@ export default function DashboardHome() {
           const pl = data.find((l: any) => l.slug === slug) ?? data.find((l: any) => l.slug === "via-membership");
           if (pl?.url) setPaymentLink(pl.url);
         }
-      })
-      .catch(() => {});
-  }, [planCode]);
+      });
+
+    Promise.allSettled([p1, p2, p3, p4]).then((results) => {
+      const anyFailed = results.some(r => r.status === "rejected");
+      if (anyFailed) {
+        setLoadError("Some dashboard data couldn't be loaded. Check your connection and try again.");
+      }
+    });
+  }, [planCode, loadAttempt]);
 
   const status = member?.application?.status ?? "pending";
   const viaNumber = member?.business?.via_number;
@@ -156,6 +163,25 @@ export default function DashboardHome() {
           {biz?.business_name ? `Welcome, ${biz.business_name}` : "Member Dashboard"}
         </h1>
         <p className="text-muted-foreground mb-8">Your TVC verification status and quick links.</p>
+
+        {/* Data load error banner */}
+        {loadError && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+              <p className="text-sm text-destructive">{loadError}</p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setLoadAttempt(a => a + 1)}
+              className="shrink-0 gap-1.5"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
+            </Button>
+          </div>
+        )}
 
         {/* VIA number hero card */}
         <div className={`rounded-2xl border p-6 mb-6 ${status === "approved" ? "border-emerald-500/30 bg-emerald-500/5" : "border-border bg-card"}`}>
