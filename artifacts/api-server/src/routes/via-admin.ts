@@ -860,7 +860,7 @@ router.get("/admin/portfolio", requireAdmin, async (req, res) => {
 });
 
 // =============================================================================
-// DELETE /api/admin/portfolio-images/:id — admin delete a portfolio image
+// DELETE /api/admin/portfolio-images/:id — soft-delete (preserves monthly quota count)
 // =============================================================================
 const PORTFOLIO_BUCKET_ADMIN = "portfolio-images";
 router.delete("/admin/portfolio-images/:id", requireAdmin, async (req, res) => {
@@ -873,9 +873,10 @@ router.delete("/admin/portfolio-images/:id", requireAdmin, async (req, res) => {
       .eq("id", req.params.id)
       .maybeSingle();
     if ((img as any)?.storage_path) {
-      await supabase.storage.from(PORTFOLIO_BUCKET_ADMIN).remove([(img as any).storage_path]);
+      await supabase.storage.from(PORTFOLIO_BUCKET_ADMIN).remove([(img as any).storage_path]).catch(() => {});
     }
-    await supabase.from("portfolio_images").delete().eq("id", req.params.id);
+    // Soft-delete: clear public_url and storage_path; row remains for monthly quota tracking
+    await supabase.from("portfolio_images").update({ public_url: null, storage_path: "" }).eq("id", req.params.id);
     return ok(res, { deleted: true });
   } catch (e: any) {
     return err(res, e.message);

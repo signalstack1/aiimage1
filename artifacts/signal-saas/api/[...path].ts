@@ -671,12 +671,12 @@ export default async function handler(req: any, res: any) {
         return;
       }
 
-      // DELETE /api/admin/portfolio-images/:id
+      // DELETE /api/admin/portfolio-images/:id — soft-delete (preserves monthly quota count)
       if (g1 === "portfolio-images" && g2 && !g3 && method === "DELETE") {
         if (!configured) { ok(res, { deleted: true }); return; }
         const { data: img } = await supabase.from("portfolio_images").select("storage_path").eq("id",g2).maybeSingle();
         if ((img as any)?.storage_path) await supabase.storage.from(PORTFOLIO_BUCKET).remove([(img as any).storage_path]).catch(() => {});
-        await supabase.from("portfolio_images").delete().eq("id",g2);
+        await supabase.from("portfolio_images").update({ public_url: null, storage_path: "" }).eq("id",g2);
         ok(res, { deleted: true });
         return;
       }
@@ -911,7 +911,7 @@ export default async function handler(req: any, res: any) {
             fail(res, "Business intro is a TVC Plus feature.", 403); return;
           }
         }
-        const introText = intro ? String(intro).slice(0, 1500) : null;
+        const introText = intro ? String(intro).replace(/<[^>]*>/g,"").slice(0, 1500) : null;
         const { data: biData, error: biErr } = await supabase.from("businesses").update({ business_intro: introText, updated_at: new Date().toISOString() }).eq("user_id",userId).select("business_intro").single();
         if (biErr) { fail(res, biErr.message); return; }
         ok(res, biData);
@@ -978,6 +978,22 @@ export default async function handler(req: any, res: any) {
         }).select().single();
         if (imgErr) throw imgErr;
         ok(res, img, 201);
+        return;
+      }
+
+      // PATCH /api/member/portfolio/:id — update description
+      if (g1 === "portfolio" && g2 && !g3 && method === "PATCH") {
+        const { description } = req.body ?? {};
+        if (!configured) { ok(res, { id:g2, description: description ?? null }); return; }
+        const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
+        if (!biz) { fail(res, "Business not found", 404); return; }
+        const desc = description ? String(description).replace(/<[^>]*>/g,"").slice(0,300) : null;
+        const { data: pImg, error: pErr } = await supabase.from("portfolio_images")
+          .update({ description: desc })
+          .eq("id",g2).eq("business_id",(biz as any).id).not("public_url","is",null)
+          .select("id,description").single();
+        if (pErr) { fail(res, pErr.message); return; }
+        ok(res, pImg);
         return;
       }
 

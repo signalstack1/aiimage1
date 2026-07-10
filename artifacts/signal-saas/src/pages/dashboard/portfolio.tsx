@@ -39,6 +39,8 @@ export default function DashboardPortfolio() {
   const [monthCount, setMonthCount] = useState(0);
   const [uploading, setUploading]   = useState(false);
   const [deleting, setDeleting]     = useState<string | null>(null);
+  const [savingDesc, setSavingDesc] = useState<string | null>(null);
+  const [descDraft, setDescDraft]   = useState<Record<string, string>>({});
   const [error, setError]           = useState<string | null>(null);
   const [success, setSuccess]       = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -90,6 +92,22 @@ export default function DashboardPortfolio() {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
     }
+  };
+
+  const handleSaveDescription = async (id: string) => {
+    const description = descDraft[id] ?? (images.find(i => i.id === id)?.description ?? "");
+    setSavingDesc(id);
+    try {
+      const r = await fetchWithAuth(`${BASE_URL}/api/member/portfolio/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: description || null }),
+      });
+      if (r.ok) {
+        setImages((prev) => prev.map((img) => img.id === id ? { ...img, description: description || null } : img));
+      }
+    } catch {}
+    setSavingDesc(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -196,35 +214,54 @@ export default function DashboardPortfolio() {
         ) : (
           <div>
             <p className="text-sm font-semibold mb-4 text-muted-foreground">{images.length} image{images.length !== 1 ? "s" : ""} in your gallery</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {images.map((img) => (
-                <div key={img.id} className="relative group rounded-xl overflow-hidden border border-border bg-muted aspect-square">
-                  {img.public_url ? (
-                    <img
-                      src={img.public_url}
-                      alt={img.description || "Portfolio image"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Processing…</div>
-                  )}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(img.id)}
-                      disabled={deleting === img.id}
-                      className="gap-2"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      {deleting === img.id ? "Deleting…" : "Delete"}
-                    </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {images.map((img) => {
+                const draftVal = descDraft[img.id] ?? (img.description ?? "");
+                return (
+                  <div key={img.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                    <div className="relative group aspect-video bg-muted">
+                      {img.public_url ? (
+                        <img
+                          src={img.public_url}
+                          alt={img.description || "Portfolio image"}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Processing…</div>
+                      )}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(img.id)}
+                          disabled={deleting === img.id}
+                          className="gap-2"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          {deleting === img.id ? "Deleting…" : "Delete"}
+                        </Button>
+                      </div>
+                      <div className="absolute top-1.5 right-1.5 bg-black/60 text-[10px] text-white/80 px-1.5 py-0.5 rounded">
+                        {new Date(img.created_at).toLocaleDateString("en-GB")}
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <label className="block text-[11px] text-muted-foreground font-medium mb-1">Description <span className="font-normal">(optional, shown on your public profile)</span></label>
+                      <textarea
+                        className="w-full text-sm bg-muted border border-border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
+                        rows={2}
+                        maxLength={300}
+                        placeholder="e.g. New bathroom installation in Leeds"
+                        value={draftVal}
+                        onChange={(e) => setDescDraft((prev) => ({ ...prev, [img.id]: e.target.value }))}
+                        onBlur={() => handleSaveDescription(img.id)}
+                        disabled={savingDesc === img.id}
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1 text-right">{draftVal.length}/300{savingDesc === img.id ? " · Saving…" : ""}</p>
+                    </div>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/60 text-[10px] text-white/80">
-                    {new Date(img.created_at).toLocaleDateString("en-GB")}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

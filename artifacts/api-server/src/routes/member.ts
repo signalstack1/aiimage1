@@ -532,7 +532,7 @@ router.patch("/member/business-intro", requireMember, async (req: AuthedRequest,
       }
     }
 
-    const introText = intro ? String(intro).slice(0, 1500) : null;
+    const introText = intro ? String(intro).replace(/<[^>]*>/g,"").slice(0, 1500) : null;
     const { data, error } = await supabase.from("businesses")
       .update({ business_intro: introText, updated_at: new Date().toISOString() })
       .eq("user_id", req.userId!)
@@ -653,6 +653,31 @@ router.post("/member/portfolio/upload", requireMember, async (req: AuthedRequest
     return ok(res, img, 201);
   } catch (e: any) {
     logger.error({ err: e }, "POST /member/portfolio/upload error");
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// PATCH /api/member/portfolio/:id — update image description
+// =============================================================================
+router.patch("/member/portfolio/:id", requireMember, async (req: AuthedRequest, res) => {
+  if (!isSupabaseConfigured()) return ok(res, { id: req.params.id, description: null });
+  try {
+    const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
+    if (!biz) return err(res, "Business not found", 404);
+    const { description } = req.body ?? {};
+    const desc = description ? String(description).replace(/<[^>]*>/g,"").slice(0, 300) : null;
+    const { data, error } = await supabase.from("portfolio_images")
+      .update({ description: desc })
+      .eq("id", req.params.id)
+      .eq("business_id", biz.id)
+      .not("public_url", "is", null)
+      .select("id,description")
+      .single();
+    if (error) return err(res, error.message);
+    return ok(res, data);
+  } catch (e: any) {
+    logger.error({ err: e }, "PATCH /member/portfolio/:id error");
     return err(res, e.message);
   }
 });

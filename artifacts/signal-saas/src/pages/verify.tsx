@@ -7,7 +7,7 @@ import { TVCLogo } from "@/components/TVCLogo";
 import {
   ShieldCheck, Search, CheckCircle2, XCircle, Clock,
   MapPin, Building2, Award, Globe, FileSearch, Phone,
-  ArrowLeft, AlertTriangle,
+  ArrowLeft, AlertTriangle, MessageSquare, Send,
 } from "lucide-react";
 import { APP_CONFIG } from "@/config/app";
 
@@ -83,6 +83,130 @@ function CheckRow({ checkType, status }: { checkType: string; status: Verificati
         </span>
       </div>
     </div>
+  );
+}
+
+// ── Testimonial submission form (shown on approved profiles) ───────────────────
+function TestimonialForm({ viaNumber }: { viaNumber: string }) {
+  const [name, setName]       = useState("");
+  const [text, setText]       = useState("");
+  const [email, setEmail]     = useState("");
+  const [service, setService] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent]       = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !text.trim()) return;
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/api/via/testimonials/${encodeURIComponent(viaNumber)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_name: name.trim(),
+          testimonial_text: text.trim(),
+          customer_email: email.trim() || undefined,
+          service_received: service.trim() || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setFormError(data.error || "Submission failed. Please try again."); return; }
+      setSent(true);
+    } catch {
+      setFormError("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 text-center">
+        <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
+        <p className="font-semibold text-emerald-400 mb-1">Thank you for your testimonial</p>
+        <p className="text-sm text-muted-foreground">It's been submitted for review and will appear on this tradesperson's profile once approved.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-card border border-border rounded-2xl p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <MessageSquare className="w-5 h-5 text-primary shrink-0" />
+        <h3 className="font-bold">Leave a testimonial</h3>
+      </div>
+      <p className="text-sm text-muted-foreground mb-5">
+        Used this tradesperson's services? Share your experience. Testimonials are reviewed before being published.
+      </p>
+
+      {formError && (
+        <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-3 mb-4 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" /> {formError}
+        </div>
+      )}
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Your name <span className="text-destructive">*</span></label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Sarah Johnson"
+            maxLength={100}
+            required
+            className="bg-muted border-border"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Your experience <span className="text-destructive">*</span></label>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Tell others about the work carried out and your experience…"
+            maxLength={2000}
+            required
+            rows={4}
+            className="w-full text-sm bg-muted border border-border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
+          />
+          <p className="text-[10px] text-muted-foreground text-right mt-1">{text.length}/2000</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Your email <span className="text-muted-foreground font-normal">(optional, not published)</span></label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="yourname@example.com"
+              maxLength={200}
+              className="bg-muted border-border"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Service received <span className="text-muted-foreground font-normal">(optional)</span></label>
+            <Input
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+              placeholder="e.g. Boiler installation"
+              maxLength={200}
+              className="bg-muted border-border"
+            />
+          </div>
+        </div>
+      </div>
+
+      <Button
+        type="submit"
+        disabled={submitting || !name.trim() || !text.trim()}
+        className="mt-5 gradient-brand text-white border-0 hover:opacity-90 font-semibold gap-2"
+      >
+        <Send className="w-4 h-4" />
+        {submitting ? "Submitting…" : "Submit testimonial"}
+      </Button>
+    </form>
   );
 }
 
@@ -162,6 +286,13 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
           ))}
         </div>
       </div>
+
+      {/* Testimonial submission — approved profiles only */}
+      {profile.status === "approved" && (
+        <div className="mb-6">
+          <TestimonialForm viaNumber={profile.via_number} />
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <Button variant="outline" className="flex-1" asChild>
