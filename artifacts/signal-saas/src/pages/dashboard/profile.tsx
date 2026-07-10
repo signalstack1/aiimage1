@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { CheckCircle2, Lock } from "lucide-react";
+import { CheckCircle2, Lock, AlertTriangle } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { getPlanEntitlements } from "@/config/app";
@@ -33,6 +33,7 @@ export default function DashboardProfile() {
   const planCode = member?.application?.plan_code ?? null;
   const entitlements = getPlanEntitlements(planCode);
   const canEditDescription = entitlements.enhanced_profile;
+  const canEditIntro = entitlements.portfolio_access;
 
   const [form, setForm] = useState<ProfileForm>({
     business_name: "",
@@ -43,11 +44,15 @@ export default function DashboardProfile() {
     contact_enabled: false,
     description: "",
   });
-  const [saving, setSaving]   = useState(false);
-  const [saved, setSaved]     = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved]   = useState(false);
+  const [error, setError]   = useState<string | null>(null);
 
-  // Populate form from member data
+  const [intro, setIntro]             = useState("");
+  const [savingIntro, setSavingIntro] = useState(false);
+  const [introSaved, setIntroSaved]   = useState(false);
+  const [introError, setIntroError]   = useState<string | null>(null);
+
   useEffect(() => {
     if (!member?.business) return;
     const b = member.business;
@@ -60,6 +65,7 @@ export default function DashboardProfile() {
       contact_enabled: b.contact_enabled ?? false,
       description:     b.description ?? "",
     });
+    setIntro((b as any).business_intro ?? "");
   }, [member]);
 
   const update = <K extends keyof ProfileForm>(key: K) => (
@@ -74,7 +80,6 @@ export default function DashboardProfile() {
     setSaving(true);
     setError(null);
     try {
-      // Strip Plus-only fields if member is on Basic plan
       const payload = canEditDescription ? form : (({ description: _d, ...rest }) => rest)(form);
       const res = await fetchWithAuth(`${BASE_URL}/api/member/profile`, {
         method: "PATCH",
@@ -92,6 +97,29 @@ export default function DashboardProfile() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveIntro = async () => {
+    setIntroError(null);
+    setIntroSaved(false);
+    setSavingIntro(true);
+    try {
+      const res = await fetchWithAuth(`${BASE_URL}/api/member/business-intro`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intro }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Save failed");
+      }
+      setIntroSaved(true);
+      setTimeout(() => setIntroSaved(false), 3000);
+    } catch (err: any) {
+      setIntroError(err.message);
+    } finally {
+      setSavingIntro(false);
     }
   };
 
@@ -203,6 +231,47 @@ export default function DashboardProfile() {
             {saving ? "Saving…" : "Save changes"}
           </Button>
         </form>
+
+        {canEditIntro && (
+          <div className="mt-6 bg-card border border-border rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="font-bold">Business Introduction</h2>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">TVC Plus</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              A detailed introduction about your experience, specialisms, and service area. Shown on your public TVC profile below the short description. Maximum 1,500 characters.
+            </p>
+            {introError && (
+              <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-3 mb-4 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" /> {introError}
+              </div>
+            )}
+            {introSaved && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm rounded-lg px-4 py-3 mb-4 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" /> Introduction saved.
+              </div>
+            )}
+            <textarea
+              value={intro}
+              onChange={(e) => { setIntro(e.target.value); setIntroSaved(false); }}
+              maxLength={1500}
+              rows={7}
+              placeholder="Tell customers about your experience, qualifications, certifications, and what makes your service stand out…"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring resize-none mb-2"
+            />
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs text-muted-foreground">{intro.length} / 1,500</span>
+            </div>
+            <Button
+              type="button"
+              onClick={saveIntro}
+              disabled={savingIntro}
+              className="gradient-brand text-white border-0 hover:opacity-90 font-semibold h-10"
+            >
+              {savingIntro ? "Saving…" : "Save introduction"}
+            </Button>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

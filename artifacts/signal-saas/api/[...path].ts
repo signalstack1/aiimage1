@@ -10,6 +10,7 @@ export const config = {
 };
 
 const DOC_BUCKET = "member-documents";
+const PORTFOLIO_BUCKET = "portfolio-images";
 
 // ── Plan entitlements (mirrored from frontend app.ts for server-side checks) ──
 const PLAN_ENTITLEMENTS: Record<string, Record<string, boolean | number | string>> = {
@@ -632,7 +633,7 @@ export default async function handler(req: any, res: any) {
       if (g1 === "me" && method === "GET") {
         if (!configured) { ok(res, null); return; }
         const { data: biz, error: bizErr } = await supabase.from("businesses")
-          .select("id,via_number,business_name,trade_type,location,website,contact_phone,contact_enabled,description,referral_code")
+          .select("id,via_number,business_name,trade_type,location,website,contact_phone,contact_enabled,description,business_intro,referral_code")
           .eq("user_id", userId).maybeSingle();
         if (bizErr) throw bizErr;
         if (!biz) { ok(res, null); return; }

@@ -361,7 +361,7 @@ export default function DashboardHome() {
               {!isBasic && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 ml-auto">TVC Plus</span>}
             </div>
             <p className="text-xs text-muted-foreground">Showcase your best work with photos visible on your public profile.</p>
-            {!isBasic && <p className="text-xs text-muted-foreground mt-3 italic">Coming soon — being built now.</p>}
+            {!isBasic && <Link href="/dashboard/portfolio" className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium">Manage portfolio <ArrowRight className="w-3 h-3" /></Link>}
           </div>
 
           {/* Social Media Links */}
@@ -381,7 +381,7 @@ export default function DashboardHome() {
               {!isBasic && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 ml-auto">TVC Plus</span>}
             </div>
             <p className="text-xs text-muted-foreground">Add links to Facebook, Instagram, and other channels on your profile.</p>
-            {!isBasic && <p className="text-xs text-muted-foreground mt-3 italic">Coming soon — being built now.</p>}
+            {!isBasic && <Link href="/dashboard/social-links" className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium">Edit social links <ArrowRight className="w-3 h-3" /></Link>}
           </div>
 
           {/* Business Introduction */}

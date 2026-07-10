@@ -426,3 +426,91 @@ CREATE INDEX IF NOT EXISTS idx_checks_business         ON verification_checks(bu
 CREATE INDEX IF NOT EXISTS idx_documents_business      ON documents(business_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_business  ON notifications(business_id);
 CREATE INDEX IF NOT EXISTS idx_leads_stage             ON leads(stage);
+
+-- ============================================================
+-- Task #42: TVC Plus — portfolio, intro, social links, testimonials
+-- Run these ALTER/CREATE statements in the Supabase SQL Editor
+-- ============================================================
+
+-- ── business_intro column ─────────────────────────────────────────────────────
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS business_intro TEXT;
+
+-- ── portfolio_images ──────────────────────────────────────────────────────────
+-- Plus-member work photos. Deletion does NOT restore monthly upload quota.
+CREATE TABLE IF NOT EXISTS portfolio_images (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id   UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  storage_path  TEXT NOT NULL,
+  public_url    TEXT,
+  description   TEXT,
+  upload_month  TEXT NOT NULL,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_portfolio_images_business ON portfolio_images(business_id);
+CREATE INDEX IF NOT EXISTS idx_portfolio_images_month    ON portfolio_images(business_id, upload_month);
+ALTER TABLE portfolio_images ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "service_role_all" ON portfolio_images'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "service_role_all" ON portfolio_images FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "member_own" ON portfolio_images'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "member_own" ON portfolio_images FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM businesses b WHERE b.id = portfolio_images.business_id AND b.user_id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM businesses b WHERE b.id = portfolio_images.business_id AND b.user_id = auth.uid()));
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "public_read" ON portfolio_images'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "public_read" ON portfolio_images FOR SELECT TO anon USING (TRUE);
+
+-- ── social_links ──────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS social_links (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  platform    TEXT NOT NULL CHECK (platform IN ('facebook','instagram','linkedin','tiktok','youtube','x','other')),
+  url         TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (business_id, platform)
+);
+CREATE INDEX IF NOT EXISTS idx_social_links_business ON social_links(business_id);
+ALTER TABLE social_links ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "service_role_all" ON social_links'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "service_role_all" ON social_links FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "member_own" ON social_links'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "member_own" ON social_links FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM businesses b WHERE b.id = social_links.business_id AND b.user_id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM businesses b WHERE b.id = social_links.business_id AND b.user_id = auth.uid()));
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "public_read" ON social_links'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "public_read" ON social_links FOR SELECT TO anon USING (TRUE);
+DO $$ BEGIN DROP TRIGGER IF EXISTS set_social_links_updated_at ON social_links; CREATE TRIGGER set_social_links_updated_at BEFORE UPDATE ON social_links FOR EACH ROW EXECUTE FUNCTION set_updated_at(); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+-- ── testimonials ──────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS testimonials (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_id       UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  customer_name     TEXT NOT NULL,
+  testimonial_text  TEXT NOT NULL,
+  customer_email    TEXT,
+  service_received  TEXT,
+  work_date         DATE,
+  approval_status   TEXT NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending','approved','rejected')),
+  moderation_notes  TEXT,
+  submitted_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  reviewed_at       TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_testimonials_business ON testimonials(business_id);
+CREATE INDEX IF NOT EXISTS idx_testimonials_status   ON testimonials(business_id, approval_status);
+ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "service_role_all" ON testimonials'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "service_role_all" ON testimonials FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "member_own" ON testimonials'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "member_own" ON testimonials FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM businesses b WHERE b.id = testimonials.business_id AND b.user_id = auth.uid()));
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "public_read_approved" ON testimonials'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "public_read_approved" ON testimonials FOR SELECT TO anon USING (approval_status = 'approved');
+DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "public_insert" ON testimonials'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "public_insert" ON testimonials FOR INSERT TO anon WITH CHECK (TRUE);
+
+-- ── Storage: portfolio-images bucket (public) ─────────────────────────────────
+-- If this fails, create the bucket manually in Supabase Dashboard → Storage
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  VALUES ('portfolio-images', 'portfolio-images', true, 10485760,
+          ARRAY['image/jpeg','image/png','image/webp','image/jpg'])
+  ON CONFLICT (id) DO NOTHING;

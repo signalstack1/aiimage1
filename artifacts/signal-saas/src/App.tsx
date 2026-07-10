@@ -19,6 +19,9 @@ import DashboardDocuments from "@/pages/dashboard/documents";
 import DashboardBadge from "@/pages/dashboard/badge";
 import DashboardNotifications from "@/pages/dashboard/notifications";
 import DashboardMembership from "@/pages/dashboard/membership";
+import DashboardPortfolio from "@/pages/dashboard/portfolio";
+import DashboardSocialLinks from "@/pages/dashboard/social-links";
+import DashboardTestimonials from "@/pages/dashboard/testimonials";
 
 // VIA: disabled public pages — imports preserved for future reactivation
 import ProductPage from "@/pages/product";
@@ -89,6 +92,15 @@ function Router() {
       </Route>
       <Route path="/dashboard/membership">
         {() => <MemberRoute><DashboardMembership /></MemberRoute>}
+      </Route>
+      <Route path="/dashboard/portfolio">
+        {() => <MemberRoute><DashboardPortfolio /></MemberRoute>}
+      </Route>
+      <Route path="/dashboard/social-links">
+        {() => <MemberRoute><DashboardSocialLinks /></MemberRoute>}
+      </Route>
+      <Route path="/dashboard/testimonials">
+        {() => <MemberRoute><DashboardTestimonials /></MemberRoute>}
       </Route>
 
       {/* ── VIA Public ───────────────────────────────────────── */}

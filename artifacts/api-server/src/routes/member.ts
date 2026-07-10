@@ -13,6 +13,7 @@ import { getPlanEntitlements } from "../lib/plan-entitlements";
 const router = Router();
 
 const DOC_BUCKET = "member-documents";
+const PORTFOLIO_BUCKET = "portfolio-images";
 
 // ── Auth middleware ────────────────────────────────────────────────────────────
 
@@ -54,6 +55,17 @@ async function ensureDocBucket() {
   });
   if (error && !error.message.toLowerCase().includes("already exist") && !error.message.toLowerCase().includes("duplicate")) {
     logger.warn({ err: error.message }, "ensureDocBucket warning");
+  }
+}
+
+async function ensurePortfolioBucket() {
+  const { error } = await supabase.storage.createBucket(PORTFOLIO_BUCKET, {
+    public: true,
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/jpg"],
+    fileSizeLimit: 10 * 1024 * 1024,
+  });
+  if (error && !error.message.toLowerCase().includes("already exist") && !error.message.toLowerCase().includes("duplicate")) {
+    logger.warn({ err: error.message }, "ensurePortfolioBucket warning");
   }
 }
 

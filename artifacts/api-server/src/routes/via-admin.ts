@@ -790,4 +790,99 @@ router.post("/admin/applications/:id/request-documents", requireAdmin, async (re
   }
 });
 
+// =============================================================================
+// GET /api/admin/portfolio?business_id= — list portfolio images for a business
+// =============================================================================
+router.get("/admin/portfolio", requireAdmin, async (req, res) => {
+  const { business_id } = req.query as { business_id?: string };
+  if (!business_id) return err(res, "business_id query param required", 400);
+  if (!isSupabaseConfigured()) return ok(res, []);
+
+  try {
+    const { data, error } = await supabase
+      .from("portfolio_images")
+      .select("id, public_url, storage_path, description, upload_month, display_order, created_at")
+      .eq("business_id", business_id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      if (error.code === "42P01" || error.message?.includes("does not exist")) return ok(res, []);
+      return err(res, error.message);
+    }
+    return ok(res, data ?? []);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// DELETE /api/admin/portfolio-images/:id — admin delete a portfolio image
+// =============================================================================
+const PORTFOLIO_BUCKET_ADMIN = "portfolio-images";
+router.delete("/admin/portfolio-images/:id", requireAdmin, async (req, res) => {
+  if (!isSupabaseConfigured()) return ok(res, { deleted: true });
+
+  try {
+    const { data: img } = await supabase
+      .from("portfolio_images")
+      .select("storage_path")
+      .eq("id", req.params.id)
+      .maybeSingle();
+    if ((img as any)?.storage_path) {
+      await supabase.storage.from(PORTFOLIO_BUCKET_ADMIN).remove([(img as any).storage_path]);
+    }
+    await supabase.from("portfolio_images").delete().eq("id", req.params.id);
+    return ok(res, { deleted: true });
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// GET /api/admin/testimonials?business_id= — list testimonials (admin)
+// =============================================================================
+router.get("/admin/testimonials", requireAdmin, async (req, res) => {
+  if (!isSupabaseConfigured()) return ok(res, []);
+
+  try {
+    const { business_id } = req.query as { business_id?: string };
+    let query = supabase
+      .from("testimonials")
+      .select("id, business_id, customer_name, testimonial_text, customer_email, service_received, work_date, approval_status, moderation_notes, submitted_at, reviewed_at")
+      .order("submitted_at", { ascending: false });
+    if (business_id) query = query.eq("business_id", business_id);
+    const { data, error } = await query;
+    if (error) {
+      if (error.code === "42P01" || error.message?.includes("does not exist")) return ok(res, []);
+      return err(res, error.message);
+    }
+    return ok(res, data ?? []);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// PATCH /api/admin/testimonials/:id — admin approve/reject/reset a testimonial
+// =============================================================================
+router.patch("/admin/testimonials/:id", requireAdmin, async (req, res) => {
+  const { approval_status, moderation_notes } = req.body || {};
+  if (!["approved", "rejected", "pending"].includes(approval_status)) {
+    return err(res, "approval_status must be 'approved', 'rejected', or 'pending'", 400);
+  }
+  if (!isSupabaseConfigured()) return ok(res, { id: req.params.id, approval_status });
+
+  try {
+    const { data, error } = await supabase
+      .from("testimonials")
+      .update({ approval_status, moderation_notes: moderation_notes || null, reviewed_at: new Date().toISOString() })
+      .eq("id", req.params.id)
+      .select()
+      .single();
+    if (error) return err(res, error.message);
+    return ok(res, data);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
 export default router;
