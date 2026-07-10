@@ -514,12 +514,13 @@ router.get("/member/verification-checks", requireMember, async (req: AuthedReque
 
 // =============================================================================
 // PATCH /api/member/business-intro — update business introduction (Plus/legacy)
+// Body: { intro: string } — note: key is "intro" (matches frontend)
 // =============================================================================
 router.patch("/member/business-intro", requireMember, async (req: AuthedRequest, res) => {
-  const { business_intro } = req.body || {};
+  const { intro } = req.body || {};
 
   if (!isSupabaseConfigured()) {
-    return ok(res, { business_intro: business_intro ?? null });
+    return ok(res, { business_intro: intro ?? null });
   }
 
   try {
@@ -531,9 +532,9 @@ router.patch("/member/business-intro", requireMember, async (req: AuthedRequest,
       }
     }
 
-    const intro = business_intro ? String(business_intro).slice(0, 1500) : null;
+    const introText = intro ? String(intro).slice(0, 1500) : null;
     const { data, error } = await supabase.from("businesses")
-      .update({ business_intro: intro, updated_at: new Date().toISOString() })
+      .update({ business_intro: introText, updated_at: new Date().toISOString() })
       .eq("user_id", req.userId!)
       .select("business_intro")
       .single();
@@ -545,46 +546,58 @@ router.patch("/member/business-intro", requireMember, async (req: AuthedRequest,
 });
 
 // =============================================================================
-// GET /api/member/portfolio — list portfolio images
+// GET /api/member/portfolio — returns { images, month_count }
+// Soft-deleted images (public_url = null) are excluded from the gallery
+// but still count toward the monthly quota.
 // =============================================================================
 router.get("/member/portfolio", requireMember, async (req: AuthedRequest, res) => {
-  if (!isSupabaseConfigured()) return ok(res, []);
+  if (!isSupabaseConfigured()) return ok(res, { images: [], month_count: 0 });
 
   try {
     const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
-    if (!biz) return ok(res, []);
+    if (!biz) return ok(res, { images: [], month_count: 0 });
 
-    const { data, error } = await supabase.from("portfolio_images")
-      .select("id, public_url, description, upload_month, display_order, created_at")
-      .eq("business_id", biz.id)
-      .order("display_order", { ascending: true });
+    const uploadMonth = new Date().toISOString().slice(0, 7);
+    const [imagesResult, countResult] = await Promise.all([
+      supabase.from("portfolio_images")
+        .select("id, public_url, description, upload_month, display_order, created_at")
+        .eq("business_id", biz.id)
+        .not("public_url", "is", null)
+        .order("display_order", { ascending: true }),
+      supabase.from("portfolio_images")
+        .select("id", { count: "exact", head: true })
+        .eq("business_id", biz.id)
+        .eq("upload_month", uploadMonth),
+    ]);
 
-    if (error) {
-      if (error.code === "42P01" || error.message?.includes("does not exist")) return ok(res, []);
-      return err(res, error.message);
+    if (imagesResult.error) {
+      if (imagesResult.error.code === "42P01" || imagesResult.error.message?.includes("does not exist")) {
+        return ok(res, { images: [], month_count: 0 });
+      }
+      return err(res, imagesResult.error.message);
     }
-    return ok(res, data ?? []);
+    return ok(res, { images: imagesResult.data ?? [], month_count: countResult.count ?? 0 });
   } catch (e: any) {
     return err(res, e.message);
   }
 });
 
 // =============================================================================
-// POST /api/member/portfolio — upload a portfolio image
-// Body: { file_data: base64, mime_type, file_name, description? }
+// POST /api/member/portfolio/upload — upload a portfolio image
+// Body: { file_data: DataURL or raw base64, mime_type }
 // =============================================================================
-router.post("/member/portfolio", requireMember, async (req: AuthedRequest, res) => {
-  const { file_data, mime_type, file_name, description } = req.body || {};
+router.post("/member/portfolio/upload", requireMember, async (req: AuthedRequest, res) => {
+  const { file_data, mime_type } = req.body || {};
 
-  if (!file_data || !mime_type || !file_name) {
-    return err(res, "file_data (base64), mime_type, and file_name are required", 400);
+  if (!file_data || !mime_type) {
+    return err(res, "file_data and mime_type are required", 400);
   }
 
   if (!isSupabaseConfigured()) {
     return ok(res, {
       id: `mock-img-${Date.now()}`,
       public_url: "https://placehold.co/600x400?text=Portfolio",
-      description: description ?? null,
+      description: null,
       upload_month: new Date().toISOString().slice(0, 7),
       display_order: 0,
       created_at: new Date().toISOString(),
@@ -608,9 +621,15 @@ router.post("/member/portfolio", requireMember, async (req: AuthedRequest, res) 
 
     await ensurePortfolioBucket();
 
-    const ext = (file_name as string).split(".").pop()?.toLowerCase() || "jpg";
+    // Strip DataURL prefix if present (data:image/jpeg;base64,...)
+    const raw = String(file_data);
+    const base64Data = raw.includes(",") ? raw.split(",")[1] : raw;
+    const extMap: Record<string, string> = { "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp" };
+    const ext = extMap[mime_type as string] ?? "jpg";
     const storagePath = `${biz.id}/${uploadMonth}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const buffer = Buffer.from(file_data as string, "base64");
+    const buffer = Buffer.from(base64Data, "base64");
+
+    if (buffer.byteLength > 10 * 1024 * 1024) return err(res, "Image must be 10 MB or smaller.", 413);
 
     const { error: uploadErr } = await supabase.storage.from(PORTFOLIO_BUCKET).upload(storagePath, buffer, { contentType: mime_type, upsert: false });
     if (uploadErr) throw uploadErr;
@@ -622,20 +641,22 @@ router.post("/member/portfolio", requireMember, async (req: AuthedRequest, res) 
       business_id: biz.id,
       storage_path: storagePath,
       public_url: publicUrl,
-      description: description ? String(description).slice(0, 300) : null,
+      description: null,
       upload_month: uploadMonth,
       display_order: monthCount ?? 0,
     }).select().single();
     if (imgErr) throw imgErr;
     return ok(res, img, 201);
   } catch (e: any) {
-    logger.error({ err: e }, "POST /member/portfolio error");
+    logger.error({ err: e }, "POST /member/portfolio/upload error");
     return err(res, e.message);
   }
 });
 
 // =============================================================================
-// DELETE /api/member/portfolio/:id — delete a portfolio image (no quota restore)
+// DELETE /api/member/portfolio/:id — soft-delete (quota count preserved)
+// Removes from storage and clears public_url so the image is hidden,
+// but the row stays in the DB so monthly upload count is not affected.
 // =============================================================================
 router.delete("/member/portfolio/:id", requireMember, async (req: AuthedRequest, res) => {
   if (!isSupabaseConfigured()) return ok(res, { deleted: true });
@@ -644,14 +665,22 @@ router.delete("/member/portfolio/:id", requireMember, async (req: AuthedRequest,
     const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
     if (!biz) return err(res, "Business not found", 404);
 
-    const { data: img } = await supabase.from("portfolio_images").select("storage_path").eq("id", req.params.id).eq("business_id", biz.id).maybeSingle();
-    if (!img) return err(res, "Image not found", 404);
+    const { data: img } = await supabase.from("portfolio_images")
+      .select("storage_path, public_url")
+      .eq("id", req.params.id)
+      .eq("business_id", biz.id)
+      .maybeSingle();
+    if (!img || !(img as any).public_url) return err(res, "Image not found", 404);
 
     if ((img as any).storage_path) {
-      await supabase.storage.from(PORTFOLIO_BUCKET).remove([(img as any).storage_path]);
+      await supabase.storage.from(PORTFOLIO_BUCKET).remove([(img as any).storage_path]).catch(() => {});
     }
 
-    const { error } = await supabase.from("portfolio_images").delete().eq("id", req.params.id).eq("business_id", biz.id);
+    // Soft-delete: clear public_url to hide from gallery; row stays for quota tracking
+    const { error } = await supabase.from("portfolio_images")
+      .update({ public_url: null, storage_path: "" })
+      .eq("id", req.params.id)
+      .eq("business_id", biz.id);
     if (error) return err(res, error.message);
     return ok(res, { deleted: true });
   } catch (e: any) {
@@ -752,14 +781,16 @@ router.patch("/member/testimonials/:id", requireMember, async (req: AuthedReques
     const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
     if (!biz) return err(res, "Business not found", 404);
 
-    const { customer_name, testimonial_text, customer_email, service_received, work_date } = req.body || {};
+    const { customer_name, testimonial_text, customer_email, service_received, work_date, approval_status } = req.body || {};
+    const VALID_STATUS = ["pending", "approved", "rejected"];
     const { data, error } = await supabase.from("testimonials")
       .update({
-        ...(customer_name     !== undefined && { customer_name }),
-        ...(testimonial_text  !== undefined && { testimonial_text }),
-        ...(customer_email    !== undefined && { customer_email }),
-        ...(service_received  !== undefined && { service_received }),
-        ...(work_date         !== undefined && { work_date: work_date || null }),
+        ...(customer_name    !== undefined && { customer_name }),
+        ...(testimonial_text !== undefined && { testimonial_text }),
+        ...(customer_email   !== undefined && { customer_email }),
+        ...(service_received !== undefined && { service_received }),
+        ...(work_date        !== undefined && { work_date: work_date || null }),
+        ...(approval_status !== undefined && VALID_STATUS.includes(approval_status) && { approval_status, reviewed_at: new Date().toISOString() }),
       })
       .eq("id", req.params.id)
       .eq("business_id", biz.id)

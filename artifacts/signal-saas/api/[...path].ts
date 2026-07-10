@@ -857,8 +857,8 @@ export default async function handler(req: any, res: any) {
 
       // PATCH /api/member/business-intro
       if (g1 === "business-intro" && method === "PATCH") {
-        const { business_intro } = req.body ?? {};
-        if (!configured) { ok(res, { business_intro }); return; }
+        const { intro } = req.body ?? {};
+        if (!configured) { ok(res, { business_intro: intro ?? null }); return; }
         const { data: bizForPlan } = await supabase.from("businesses").select("id").eq("user_id",userId).maybeSingle();
         if (bizForPlan) {
           const { data: applForPlan } = await supabase.from("applications").select("plan_code").eq("business_id",(bizForPlan as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
@@ -866,34 +866,44 @@ export default async function handler(req: any, res: any) {
             fail(res, "Business intro is a TVC Plus feature.", 403); return;
           }
         }
-        const intro = business_intro ? String(business_intro).slice(0, 1500) : null;
-        const { data: biData, error: biErr } = await supabase.from("businesses").update({ business_intro: intro, updated_at: new Date().toISOString() }).eq("user_id",userId).select("business_intro").single();
+        const introText = intro ? String(intro).slice(0, 1500) : null;
+        const { data: biData, error: biErr } = await supabase.from("businesses").update({ business_intro: introText, updated_at: new Date().toISOString() }).eq("user_id",userId).select("business_intro").single();
         if (biErr) { fail(res, biErr.message); return; }
         ok(res, biData);
         return;
       }
 
-      // GET /api/member/portfolio
+      // GET /api/member/portfolio — returns { images, month_count }
       if (g1 === "portfolio" && !g2 && method === "GET") {
-        if (!configured) { ok(res, []); return; }
+        if (!configured) { ok(res, { images: [], month_count: 0 }); return; }
         const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
-        if (!biz) { ok(res, []); return; }
-        const { data, error } = await supabase.from("portfolio_images")
-          .select("id,public_url,description,upload_month,display_order,created_at")
-          .eq("business_id",(biz as any).id).order("display_order",{ascending:true});
-        if (error) {
-          if (error.code === "42P01" || error.message?.includes("does not exist")) { ok(res, []); return; }
-          fail(res, error.message); return;
+        if (!biz) { ok(res, { images: [], month_count: 0 }); return; }
+        const uploadMonth = new Date().toISOString().slice(0,7);
+        const [imagesResult, countResult] = await Promise.all([
+          supabase.from("portfolio_images")
+            .select("id,public_url,description,upload_month,display_order,created_at")
+            .eq("business_id",(biz as any).id)
+            .not("public_url","is",null)
+            .order("display_order",{ascending:true}),
+          supabase.from("portfolio_images")
+            .select("id",{count:"exact",head:true})
+            .eq("business_id",(biz as any).id)
+            .eq("upload_month",uploadMonth),
+        ]);
+        if (imagesResult.error) {
+          if (imagesResult.error.code === "42P01" || imagesResult.error.message?.includes("does not exist")) { ok(res, { images: [], month_count: 0 }); return; }
+          fail(res, imagesResult.error.message); return;
         }
-        ok(res, data ?? []);
+        ok(res, { images: imagesResult.data ?? [], month_count: countResult.count ?? 0 });
         return;
       }
 
-      // POST /api/member/portfolio — upload a portfolio image
-      if (g1 === "portfolio" && !g2 && method === "POST") {
-        const { file_data, mime_type, file_name, description } = req.body ?? {};
-        if (!file_data || !mime_type || !file_name) { fail(res, "file_data, mime_type, and file_name are required", 400); return; }
-        if (!configured) { ok(res, { id:`mock-img-${Date.now()}`, public_url:"https://placehold.co/600x400?text=Portfolio", description:description??null, upload_month:new Date().toISOString().slice(0,7), display_order:0, created_at:new Date().toISOString() }, 201); return; }
+      // POST /api/member/portfolio/upload — upload a portfolio image
+      // Accepts: { file_data: DataURL or base64, mime_type } (no file_name required)
+      if (g1 === "portfolio" && g2 === "upload" && !g3 && method === "POST") {
+        const { file_data, mime_type } = req.body ?? {};
+        if (!file_data || !mime_type) { fail(res, "file_data and mime_type are required", 400); return; }
+        if (!configured) { ok(res, { id:`mock-img-${Date.now()}`, public_url:"https://placehold.co/600x400?text=Portfolio", description:null, upload_month:new Date().toISOString().slice(0,7), display_order:0, created_at:new Date().toISOString() }, 201); return; }
         const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
         if (!biz) { fail(res, "Business not found", 404); return; }
         const { data: applForPlan } = await supabase.from("applications").select("plan_code").eq("business_id",(biz as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
@@ -903,33 +913,38 @@ export default async function handler(req: any, res: any) {
         const { count: monthCount } = await supabase.from("portfolio_images").select("id",{count:"exact",head:true}).eq("business_id",(biz as any).id).eq("upload_month",uploadMonth);
         const imgLimit = Number(getPlanEntitlements(pc).monthly_image_limit) || 20;
         if ((monthCount ?? 0) >= imgLimit) { fail(res, `Monthly upload limit of ${imgLimit} images reached. Limit resets next month.`, 429); return; }
-        const ext = (file_name as string).split(".").pop()?.toLowerCase() ?? "jpg";
+        // Strip DataURL prefix if present (data:image/jpeg;base64,...)
+        const raw = String(file_data);
+        const base64Data = raw.includes(",") ? raw.split(",")[1] : raw;
+        const extMap: Record<string,string> = { "image/jpeg":"jpg","image/jpg":"jpg","image/png":"png","image/webp":"webp" };
+        const ext = extMap[mime_type as string] ?? "jpg";
         const storagePath = `${(biz as any).id}/${uploadMonth}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const buffer = Buffer.from(file_data as string, "base64");
+        const buffer = Buffer.from(base64Data, "base64");
+        if (buffer.byteLength > 10 * 1024 * 1024) { fail(res, "Image must be 10 MB or smaller.", 413); return; }
         const { error: uploadErr } = await supabase.storage.from(PORTFOLIO_BUCKET).upload(storagePath, buffer, { contentType: mime_type, upsert: false });
         if (uploadErr) throw uploadErr;
         const { data: urlData } = supabase.storage.from(PORTFOLIO_BUCKET).getPublicUrl(storagePath);
         const publicUrl = (urlData as any)?.publicUrl ?? null;
         const { data: img, error: imgErr } = await supabase.from("portfolio_images").insert({
           business_id: (biz as any).id, storage_path: storagePath, public_url: publicUrl,
-          description: description ? String(description).slice(0,300) : null,
-          upload_month: uploadMonth, display_order: monthCount ?? 0,
+          description: null, upload_month: uploadMonth, display_order: monthCount ?? 0,
         }).select().single();
         if (imgErr) throw imgErr;
         ok(res, img, 201);
         return;
       }
 
-      // DELETE /api/member/portfolio/:id
+      // DELETE /api/member/portfolio/:id — soft-delete (preserves monthly quota count)
       if (g1 === "portfolio" && g2 && !g3 && method === "DELETE") {
         if (!configured) { ok(res, { deleted: true }); return; }
         const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
         if (!biz) { fail(res, "Business not found", 404); return; }
-        const { data: img } = await supabase.from("portfolio_images").select("storage_path").eq("id",g2).eq("business_id",(biz as any).id).maybeSingle();
-        if (!img) { fail(res, "Image not found", 404); return; }
+        const { data: img } = await supabase.from("portfolio_images").select("storage_path,public_url").eq("id",g2).eq("business_id",(biz as any).id).maybeSingle();
+        if (!img || !(img as any).public_url) { fail(res, "Image not found", 404); return; }
         if ((img as any).storage_path) await supabase.storage.from(PORTFOLIO_BUCKET).remove([(img as any).storage_path]).catch(() => {});
-        const { error: delImgErr } = await supabase.from("portfolio_images").delete().eq("id",g2).eq("business_id",(biz as any).id);
-        if (delImgErr) { fail(res, delImgErr.message); return; }
+        // Soft-delete: clear public_url to hide from gallery; row remains for quota tracking
+        const { error: softDelErr } = await supabase.from("portfolio_images").update({ public_url: null, storage_path: "" }).eq("id",g2).eq("business_id",(biz as any).id);
+        if (softDelErr) { fail(res, softDelErr.message); return; }
         ok(res, { deleted: true });
         return;
       }
@@ -987,12 +1002,13 @@ export default async function handler(req: any, res: any) {
         return;
       }
 
-      // PATCH /api/member/testimonials/:id — member can update before approval
+      // PATCH /api/member/testimonials/:id — member approves/rejects testimonials on their own profile
       if (g1 === "testimonials" && g2 && !g3 && method === "PATCH") {
         if (!configured) { ok(res, { id:g2, ...req.body }); return; }
         const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
         if (!biz) { fail(res, "Business not found", 404); return; }
-        const { customer_name, testimonial_text, customer_email, service_received, work_date } = req.body ?? {};
+        const { customer_name, testimonial_text, customer_email, service_received, work_date, approval_status } = req.body ?? {};
+        const VALID_STATUS = ["pending","approved","rejected"];
         const { data: tmData, error: tmErr } = await supabase.from("testimonials")
           .update({
             ...(customer_name !== undefined && { customer_name }),
@@ -1000,6 +1016,7 @@ export default async function handler(req: any, res: any) {
             ...(customer_email !== undefined && { customer_email }),
             ...(service_received !== undefined && { service_received }),
             ...(work_date !== undefined && { work_date: work_date || null }),
+            ...(approval_status !== undefined && VALID_STATUS.includes(approval_status) && { approval_status, reviewed_at: new Date().toISOString() }),
           })
           .eq("id",g2).eq("business_id",(biz as any).id).select().single();
         if (tmErr) { fail(res, tmErr.message); return; }
