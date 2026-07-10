@@ -100,7 +100,7 @@ export default async function handler(req: any, res: any) {
 
     // POST /api/via/apply
     if (g0 === "via" && g1 === "apply" && method === "POST") {
-      const { name, business_name, trade_type, location, website, email, phone, message, password } = req.body ?? {};
+      const { name, business_name, trade_type, location, website, email, phone, message, password, plan_code, plan_price_pence } = req.body ?? {};
       if (!name || !business_name || !trade_type || !email) { fail(res, "name, business_name, trade_type, and email are required", 400); return; }
       if (!password || (password as string).length < 8) { fail(res, "password must be at least 8 characters", 400); return; }
       if (!configured) { ok(res, { ok: true, id: `mock-${Date.now()}`, payment_url: null }, 201); return; }
@@ -125,26 +125,55 @@ export default async function handler(req: any, res: any) {
       }).select().single();
       if (bizErr) throw bizErr;
 
+      const resolvedPlanCode = ["tvc_basic", "tvc_plus"].includes(plan_code) ? plan_code : null;
       const { data: appl, error: applErr } = await supabase.from("applications").insert({
         business_id: biz.id, applicant_name: name,
         applicant_email: (email as string).trim().toLowerCase(),
         applicant_phone: phone ?? null, message: message ?? null,
         status: "pending_payment",
+        plan_code: resolvedPlanCode,
+        plan_price_pence: plan_price_pence ? Number(plan_price_pence) : null,
       }).select().single();
       if (applErr) throw applErr;
 
       let paymentUrl: string | null = null;
       try {
+        const paymentSlug = resolvedPlanCode === "tvc_basic" ? "tvc-basic"
+          : resolvedPlanCode === "tvc_plus" ? "tvc-plus"
+          : "via-membership";
         const { data: pl } = await supabase.from("payment_links").select("url")
-          .eq("slug", "via-membership").eq("is_active", true).maybeSingle();
+          .eq("slug", paymentSlug).eq("is_active", true).maybeSingle();
         paymentUrl = pl?.url ?? null;
       } catch { /* non-fatal */ }
 
       try {
-        await supabase.from("events").insert({ event_type: "application_submit", actor: email, meta: { business_name, trade_type } });
+        await supabase.from("events").insert({ event_type: "application_submit", actor: email, meta: { business_name, trade_type, plan_code: resolvedPlanCode } });
       } catch { /* non-fatal */ }
 
       ok(res, { ok: true, id: appl.id, payment_url: paymentUrl }, 201);
+      return;
+    }
+
+    // POST /api/via/sticker-orders
+    if (g0 === "via" && g1 === "sticker-orders" && method === "POST") {
+      const { application_id, sticker_size, van_count, price_per_van_pence, expected_total_pence } = req.body ?? {};
+      if (!application_id || !sticker_size || !van_count) { fail(res, "application_id, sticker_size, and van_count are required", 400); return; }
+      const validSizes = ["small", "medium"];
+      if (!validSizes.includes(sticker_size)) { fail(res, "sticker_size must be small or medium", 400); return; }
+      const count = Number(van_count);
+      if (!Number.isInteger(count) || count < 1) { fail(res, "van_count must be a whole number ≥ 1", 400); return; }
+      if (!configured) { ok(res, { id: `mock-sticker-${Date.now()}`, application_id, sticker_size, van_count: count, payment_status: "pending", fulfilment_status: "awaiting_payment" }, 201); return; }
+      const { data: appl } = await supabase.from("applications").select("business_id").eq("id", application_id).single();
+      if (!appl) { fail(res, "Application not found", 404); return; }
+      const { data, error } = await supabase.from("sticker_orders").insert({
+        application_id, business_id: appl.business_id,
+        sticker_size, van_count: count,
+        price_per_van_pence: price_per_van_pence ? Number(price_per_van_pence) : null,
+        expected_total_pence: expected_total_pence ? Number(expected_total_pence) : null,
+        payment_status: "pending", fulfilment_status: "awaiting_payment",
+      }).select().single();
+      if (error) throw error;
+      ok(res, data, 201);
       return;
     }
 

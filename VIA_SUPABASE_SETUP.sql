@@ -82,6 +82,56 @@ CREATE TABLE IF NOT EXISTS documents (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ── applications migration (for existing databases) ───────────────────────────
+-- Run these if the DB was set up before the TVC plans update:
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS plan_code TEXT
+  CHECK (plan_code IN ('tvc_basic', 'tvc_plus'));
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS plan_price_pence INTEGER;
+
+-- ── sticker_orders ─────────────────────────────────────────────────────────────
+-- Van sticker pack orders linked to applications.
+CREATE TABLE IF NOT EXISTS sticker_orders (
+  id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  application_id        UUID NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+  business_id           UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  sticker_size          TEXT NOT NULL CHECK (sticker_size IN ('small', 'medium')),
+  van_count             INTEGER NOT NULL CHECK (van_count >= 1),
+  price_per_van_pence   INTEGER,                        -- e.g. 3000 = £30
+  expected_total_pence  INTEGER,                        -- van_count × price_per_van_pence
+  payment_status        TEXT NOT NULL DEFAULT 'pending'
+                          CHECK (payment_status IN ('pending', 'paid', 'refunded')),
+  fulfilment_status     TEXT NOT NULL DEFAULT 'awaiting_payment'
+                          CHECK (fulfilment_status IN ('not_ordered', 'awaiting_payment', 'paid', 'preparing', 'dispatched', 'completed', 'cancelled', 'refunded')),
+  payment_ref           TEXT,
+  delivery_details      TEXT,
+  admin_notes           TEXT,
+  ordered_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  paid_at               TIMESTAMPTZ,
+  dispatched_at         TIMESTAMPTZ,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sticker_orders_application ON sticker_orders(application_id);
+CREATE INDEX IF NOT EXISTS idx_sticker_orders_business    ON sticker_orders(business_id);
+
+-- RLS for sticker_orders
+ALTER TABLE sticker_orders ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  EXECUTE 'DROP POLICY IF EXISTS "service_role_all" ON sticker_orders';
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "service_role_all" ON sticker_orders FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+
+-- updated_at trigger for sticker_orders
+DO $$
+BEGIN
+  DROP TRIGGER IF EXISTS set_sticker_orders_updated_at ON sticker_orders;
+  CREATE TRIGGER set_sticker_orders_updated_at
+    BEFORE UPDATE ON sticker_orders
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
 -- ── documents migration (for existing databases) ──────────────────────────────
 -- Run these if you set up the DB before this schema update:
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending_review';
@@ -117,8 +167,12 @@ CREATE TABLE IF NOT EXISTS payment_links (
 
 -- Seed default payment link slots
 INSERT INTO payment_links (slug, label, url, is_active, sort_order) VALUES
-  ('via-membership',    'VIA Membership (£20/month)',      NULL, TRUE, 0),
-  ('priority-checking', 'Priority Checking (£49 one-off)', NULL, TRUE, 1)
+  ('via-membership',    'VIA Membership (legacy — £20/month)',  NULL, TRUE, 0),
+  ('priority-checking', 'Priority Checking (legacy — £49)',     NULL, TRUE, 5),
+  ('tvc-basic',         'TVC Basic (£15/month)',                NULL, TRUE, 1),
+  ('tvc-plus',          'TVC Plus (£30/month)',                 NULL, TRUE, 2),
+  ('sticker-small',     'TVC Van Sticker — Small (£30/van)',   NULL, TRUE, 3),
+  ('sticker-medium',    'TVC Van Sticker — Medium (£50/van)',  NULL, TRUE, 4)
 ON CONFLICT (slug) DO NOTHING;
 
 -- ── referrals ─────────────────────────────────────────────────────────────────

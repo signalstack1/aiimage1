@@ -142,7 +142,7 @@ export default function AdminPaymentLinksPage() {
 
         {loading ? (
           <div className="space-y-4">
-            {[1, 2].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-card border border-border rounded-xl p-6 space-y-3">
                 <div className="h-5 bg-muted animate-pulse rounded w-48" />
                 <div className="h-10 bg-muted animate-pulse rounded" />

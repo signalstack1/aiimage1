@@ -125,7 +125,7 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" className="gradient-brand text-white border-0 hover:opacity-90 text-base font-semibold px-8 h-12 glow-primary" asChild>
-              <Link href="/join">Join TVC — £20/month</Link>
+              <Link href="/join">Join TVC — from £15/month</Link>
             </Button>
             <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
               <Link href="/verify">

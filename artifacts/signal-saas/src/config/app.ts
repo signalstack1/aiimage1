@@ -36,7 +36,7 @@ export const APP_CONFIG = {
     headlineGradient: "word for it…",
     subtext:
       "TVC Secured independently checks tradespeople so homeowners can verify who they are, where they operate, and whether their key credentials have been reviewed.",
-    ctaPrimary: "Join TVC — £20/month",
+    ctaPrimary: "Join TVC — from £15/month",
   },
 
   // ── Stats bar ─────────────────────────────────────────────
@@ -118,29 +118,34 @@ export const APP_CONFIG = {
     "No hidden fees. Your TVC number, profile, badge, and public listing — all included.",
 
   planFeatures: {
-    "tvc membership": {
+    "tvc_basic": {
+      name: "TVC Basic",
+      price: "£15/month",
       features: [
         "Unique TVC number assigned",
         "Public TVC verified profile",
         "Digital verification badge",
-        "TVC van sticker pack",
         "Member dashboard access",
         "Referral code",
         "Cancel anytime",
       ],
       highlight: false,
     },
-    "priority checking": {
+    "tvc_plus": {
+      name: "TVC Plus",
+      price: "£30/month",
       features: [
-        "Everything in TVC Membership",
+        "Everything in TVC Basic",
+        "Portfolio & photo gallery",
+        "Intro video embed",
+        "Social media links on profile",
+        "Customer testimonials section",
         "Priority verification (same/next day)",
-        "Dedicated checker assigned",
-        "Fast-track profile publication",
-        "One-off payment",
+        "Enhanced public profile",
       ],
       highlight: true,
     },
-  } as Record<string, { features: string[]; highlight: boolean }>,
+  } as Record<string, { name: string; price: string; features: string[]; highlight: boolean }>,
 
   // ── FAQ ───────────────────────────────────────────────────
   faqs: [

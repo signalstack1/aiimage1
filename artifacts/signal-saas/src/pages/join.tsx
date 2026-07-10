@@ -6,28 +6,63 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  ShieldCheck, CheckCircle2, Award, Star, Hash,
-  Sticker, ArrowRight, ExternalLink, Upload, FileText, AlertCircle, MapPin, HelpCircle,
+  ShieldCheck, CheckCircle2, Award,
+  Sticker, ArrowRight, ExternalLink, Upload, AlertCircle, MapPin, HelpCircle,
 } from "lucide-react";
-import { APP_CONFIG } from "@/config/app";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "";
 
-const BENEFITS = [
-  { icon: Hash,        title: "Unique TVC Number",     desc: "Your own TVC number (e.g. TVC1042) — searchable by the public and displayed on your profile." },
-  { icon: ShieldCheck, title: "Public TVC Profile",    desc: "A verified public page showing your checks, trade type, location, and verification status." },
-  { icon: Award,       title: "Digital Badge",         desc: "A TVC verification badge to use on your website, quotes, and marketing materials." },
-  { icon: Sticker,     title: "TVC Van Sticker Pack",  desc: "Printed TVC stickers for your vehicle — one of the most visible trust signals in the trade." },
-  { icon: Star,        title: "Competitive Edge",      desc: "Stand out from unverified tradespeople when customers are comparing quotes." },
+// ── Plan config ──────────────────────────────────────────────────────────────
+
+const PLANS = [
+  {
+    code: "tvc_basic" as const,
+    name: "TVC Basic",
+    price: 15,
+    pricePence: 1500,
+    paymentSlug: "tvc-basic",
+    badge: null,
+    features: [
+      "Unique TVC number assigned",
+      "Public TVC verified profile",
+      "Digital verification badge",
+      "Member dashboard access",
+      "Referral code",
+      "Cancel anytime",
+    ],
+  },
+  {
+    code: "tvc_plus" as const,
+    name: "TVC Plus",
+    price: 30,
+    pricePence: 3000,
+    paymentSlug: "tvc-plus",
+    badge: "Most Popular",
+    features: [
+      "Everything in TVC Basic",
+      "Portfolio & photo gallery",
+      "Intro video embed",
+      "Social media links on profile",
+      "Customer testimonials section",
+      "Priority verification (same/next day)",
+      "Enhanced public profile",
+    ],
+  },
+] as const;
+
+type PlanCode = "tvc_basic" | "tvc_plus";
+
+const STICKER_OPTIONS = [
+  { size: "none" as const,   label: "No stickers",         pricePerVan: 0,  desc: "Skip for now — you can order later." },
+  { size: "small" as const,  label: "Small sticker pack",  pricePerVan: 30, desc: "Smaller format TVC stickers for your vehicle." },
+  { size: "medium" as const, label: "Medium sticker pack", pricePerVan: 50, desc: "Larger, high-visibility TVC stickers for your vehicle." },
 ];
 
-interface PaymentLink {
-  slug: string;
-  label: string;
-  url: string | null;
-}
+type StickerSize = "none" | "small" | "medium";
 
-async function fetchPaymentLinks(): Promise<PaymentLink[]> {
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+async function fetchPaymentLinks(): Promise<Array<{ slug: string; url: string | null }>> {
   try {
     const res = await fetch(`${BASE_URL}/api/payment-links`);
     if (!res.ok) return [];
@@ -37,45 +72,73 @@ async function fetchPaymentLinks(): Promise<PaymentLink[]> {
   }
 }
 
-function PaymentButton({ slug, label, className = "" }: { slug: string; label: string; className?: string }) {
-  const [loading, setLoading] = useState(false);
-  const [url, setUrl] = useState<string | null | "unconfigured">(null);
-  const [fetched, setFetched] = useState(false);
+const TRADE_TYPES = [
+  "Electrician", "Plumber", "Gas Engineer", "Builder", "Roofer",
+  "Painter & Decorator", "Carpenter / Joiner", "Plasterer",
+  "Tiler", "Flooring Specialist", "Landscaper / Gardener",
+  "Locksmith", "Heating Engineer", "Solar / Renewable",
+  "Kitchen Fitter", "Bathroom Fitter", "Other",
+];
 
-  const handleClick = async () => {
-    if (!fetched) {
-      setLoading(true);
-      const links = await fetchPaymentLinks();
-      const found = links.find((l) => l.slug === slug);
-      const resolvedUrl = found?.url ?? null;
-      setUrl(resolvedUrl ?? "unconfigured");
-      setFetched(true);
-      setLoading(false);
-      if (resolvedUrl) {
-        window.open(resolvedUrl, "_blank", "noopener");
-      }
-    } else if (url && url !== "unconfigured") {
-      window.open(url, "_blank", "noopener");
-    }
-  };
+const JOIN_DOC_SECTIONS = [
+  { type: "insurance",        icon: ShieldCheck, label: "Public Liability Insurance",  desc: "Certificate of public liability insurance. PDF or image, max 10 MB." },
+  { type: "accreditation",    icon: Award,       label: "Trade Accreditations",         desc: "Gas Safe, NICEIC, NAPIT, trust mark or any other trade body certificate." },
+  { type: "proof_of_address", icon: MapPin,      label: "Proof of Business Address",   desc: "Utility bill, bank statement, or council letter dated within 3 months." },
+  { type: "other",            icon: HelpCircle,  label: "Other Supporting Documents",  desc: "Companies House certificate, ID, or any other relevant evidence." },
+] as const;
 
-  if (url === "unconfigured") {
-    return (
-      <p className="text-sm text-muted-foreground text-center py-2">Payment link not configured yet.</p>
-    );
-  }
+// ── Sub-components ───────────────────────────────────────────────────────────
 
+function PublicNav() {
   return (
-    <Button
-      onClick={handleClick}
-      disabled={loading}
-      className={`w-full font-semibold ${className}`}
-    >
-      {loading ? "Loading…" : label}
-      {!loading && <ExternalLink className="w-4 h-4 ml-2" />}
-    </Button>
+    <header className="fixed top-0 inset-x-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
+      <div className="max-w-6xl mx-auto px-6 py-2 flex items-center justify-between">
+        <div className="flex flex-col items-center">
+          <TVCLogo size={131} />
+          <span className="text-xs font-semibold tracking-wide whitespace-nowrap mt-1">
+            Trades <span style={{ color: "hsl(142, 71%, 45%)" }}>|</span> Verified <span style={{ color: "hsl(142, 71%, 45%)" }}>|</span> Checked
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">Login</Link>
+          <Button size="sm" className="gradient-brand text-white border-0 hover:opacity-90 font-semibold" asChild>
+            <Link href="/join">Apply Now</Link>
+          </Button>
+        </div>
+      </div>
+    </header>
   );
 }
+
+function PublicFooter() {
+  return (
+    <footer className="border-t border-border py-8 px-6">
+      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+        <TVCLogo size={74} />
+        <div className="flex items-center gap-6">
+          <Link href="/verify" className="hover:text-foreground transition-colors">Verify</Link>
+          <Link href="/join" className="hover:text-foreground transition-colors">Join</Link>
+          <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+        </div>
+        <p>© {new Date().getFullYear()} TVC Secured Ltd. All rights reserved.</p>
+      </div>
+    </footer>
+  );
+}
+
+function StepBadge({ current, planCode }: { current: string; planCode: PlanCode | null }) {
+  if (!planCode) return null;
+  const plan = PLANS.find((p) => p.code === planCode);
+  if (!plan) return null;
+  return (
+    <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-sm font-medium text-primary mb-6">
+      <CheckCircle2 className="w-3.5 h-3.5" />
+      {plan.name} — £{plan.price}/month selected
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 interface ApplicationForm {
   name: string;
@@ -94,21 +157,20 @@ const EMPTY_FORM: ApplicationForm = {
   website: "", email: "", phone: "", message: "", password: "",
 };
 
-const TRADE_TYPES = [
-  "Electrician", "Plumber", "Gas Engineer", "Builder", "Roofer",
-  "Painter & Decorator", "Carpenter / Joiner", "Plasterer",
-  "Tiler", "Flooring Specialist", "Landscaper / Gardener",
-  "Locksmith", "Heating Engineer", "Solar / Renewable",
-  "Kitchen Fitter", "Bathroom Fitter", "Other",
-];
+type Step = "plan" | "form" | "sticker" | "payment" | "documents" | "done";
 
 export default function JoinPage() {
+  const [step, setStep] = useState<Step>("plan");
+  const [planCode, setPlanCode] = useState<PlanCode | null>(null);
   const [form, setForm] = useState<ApplicationForm>(EMPTY_FORM);
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [step, setStep] = useState<"form" | "payment" | "documents" | "done">("form");
+  const [stickerSize, setStickerSize] = useState<StickerSize>("none");
+  const [vanCount, setVanCount] = useState(1);
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [stickerPaymentUrl, setStickerPaymentUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [stickerSubmitting, setStickerSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joinDocs, setJoinDocs] = useState<Record<string, Array<{ id: string; file_name: string }>>>({});
   const [joinUploading, setJoinUploading] = useState<Record<string, boolean>>({});
@@ -180,10 +242,11 @@ export default function JoinPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const selectedPlan = PLANS.find((p) => p.code === planCode)!;
       const res = await fetch(`${BASE_URL}/api/via/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, plan_code: planCode, plan_price_pence: selectedPlan.pricePence }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -192,7 +255,7 @@ export default function JoinPage() {
       const data = await res.json();
       setApplicationId(data.id || null);
       setPaymentUrl(data.payment_url || null);
-      setStep("payment");
+      setStep("sticker");
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -200,12 +263,353 @@ export default function JoinPage() {
     }
   };
 
-  const JOIN_DOC_SECTIONS = [
-    { type: "insurance",        icon: ShieldCheck, label: "Public Liability Insurance",   desc: "Certificate of public liability insurance. PDF or image, max 10 MB." },
-    { type: "accreditation",    icon: Award,       label: "Trade Accreditations",          desc: "Gas Safe, NICEIC, NAPIT, trust mark or any other trade body certificate." },
-    { type: "proof_of_address", icon: MapPin,       label: "Proof of Business Address",    desc: "Utility bill, bank statement, or council letter dated within 3 months." },
-    { type: "other",            icon: HelpCircle,  label: "Other Supporting Documents",   desc: "Companies House certificate, ID, or any other relevant evidence." },
-  ] as const;
+  const handleStickerContinue = async () => {
+    if (stickerSize === "none") {
+      setStep("payment");
+      return;
+    }
+    if (!applicationId || vanCount < 1) return;
+    setStickerSubmitting(true);
+    try {
+      const stickerOpt = STICKER_OPTIONS.find((o) => o.size === stickerSize)!;
+      const res = await fetch(`${BASE_URL}/api/via/sticker-orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          application_id: applicationId,
+          sticker_size: stickerSize,
+          van_count: vanCount,
+          price_per_van_pence: stickerOpt.pricePerVan * 100,
+          expected_total_pence: stickerOpt.pricePerVan * vanCount * 100,
+        }),
+      });
+      if (res.ok) {
+        const links = await fetchPaymentLinks();
+        const slug = stickerSize === "small" ? "sticker-small" : "sticker-medium";
+        const found = links.find((l) => l.slug === slug);
+        setStickerPaymentUrl(found?.url ?? null);
+      }
+    } catch {
+      // non-fatal — still proceed
+    } finally {
+      setStickerSubmitting(false);
+    }
+    setStep("payment");
+  };
+
+  const selectedPlan = planCode ? PLANS.find((p) => p.code === planCode) : null;
+  const stickerOpt = STICKER_OPTIONS.find((o) => o.size === stickerSize)!;
+  const stickerTotal = stickerSize !== "none" ? stickerOpt.pricePerVan * vanCount : 0;
+
+  // ── Step: Plan selection ─────────────────────────────────────────────────────
+
+  if (step === "plan") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicNav />
+        <div className="flex-1 px-6 pt-32 pb-20">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-10">
+              <Badge variant="outline" className="mb-4 border-primary/30 text-primary bg-primary/5 px-3 py-1 text-xs font-medium">
+                <ShieldCheck className="w-3 h-3 mr-1.5" />
+                Join TVC Secured
+              </Badge>
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
+                Choose your plan
+              </h1>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
+                Both plans include your unique TVC number, verified public profile, and digital badge. Cancel anytime.
+              </p>
+            </div>
+
+            {/* Plan cards */}
+            <div className="grid md:grid-cols-2 gap-6 mb-10">
+              {PLANS.map((plan) => (
+                <button
+                  key={plan.code}
+                  onClick={() => { setPlanCode(plan.code); setStep("form"); }}
+                  className={`text-left bg-card border rounded-2xl p-7 relative transition-all hover:border-primary/60 hover:shadow-lg ${
+                    plan.badge ? "border-primary/40 shadow-primary/5 shadow-md" : "border-border"
+                  }`}
+                >
+                  {plan.badge && (
+                    <div className="absolute top-4 right-4">
+                      <Badge className="gradient-brand text-white border-0 text-xs font-semibold">
+                        {plan.badge}
+                      </Badge>
+                    </div>
+                  )}
+                  <div className="mb-5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{plan.name}</p>
+                    <div className="flex items-end gap-1.5">
+                      <span className="text-4xl font-extrabold">£{plan.price}</span>
+                      <span className="text-muted-foreground mb-1.5 text-sm">/month</span>
+                    </div>
+                  </div>
+                  <ul className="space-y-2.5 mb-6">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className={`w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold ${
+                    plan.badge
+                      ? "gradient-brand text-white"
+                      : "bg-primary/10 text-primary border border-primary/20"
+                  }`}>
+                    Select {plan.name}
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Sticker packs info */}
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                  <Sticker className="w-4 h-4 text-amber-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Optional: TVC Van Sticker Packs</p>
+                  <p className="text-xs text-muted-foreground">One-time add-on — not included in membership</p>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="bg-muted/30 rounded-xl px-4 py-3">
+                  <p className="font-semibold text-sm">Small Sticker Pack</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">£30 per van — smaller format TVC stickers</p>
+                </div>
+                <div className="bg-muted/30 rounded-xl px-4 py-3">
+                  <p className="font-semibold text-sm">Medium Sticker Pack</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">£50 per van — larger, high-visibility stickers</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">You'll be offered stickers during the application — no need to decide now.</p>
+            </div>
+          </div>
+        </div>
+        <PublicFooter />
+      </div>
+    );
+  }
+
+  // ── Step: Application form ───────────────────────────────────────────────────
+
+  if (step === "form") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicNav />
+        <div className="flex-1 px-6 pt-32 pb-20">
+          <div className="max-w-xl mx-auto">
+            <div className="text-center mb-8">
+              <StepBadge current={step} planCode={planCode} />
+              <h1 className="text-3xl font-extrabold mb-2">Your details</h1>
+              <p className="text-muted-foreground text-sm">Fill in your business and account information to apply.</p>
+            </div>
+
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-3 mb-5">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="name">Your name <span className="text-destructive">*</span></Label>
+                  <Input id="name" value={form.name} onChange={update("name")} placeholder="Jane Smith" required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="business_name">Business name <span className="text-destructive">*</span></Label>
+                  <Input id="business_name" value={form.business_name} onChange={update("business_name")} placeholder="Smith Electrical Ltd" required />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="trade_type">Trade type <span className="text-destructive">*</span></Label>
+                <select
+                  id="trade_type"
+                  value={form.trade_type}
+                  onChange={update("trade_type")}
+                  required
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Select trade…</option>
+                  {TRADE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="location">Town / city <span className="text-destructive">*</span></Label>
+                <Input id="location" value={form.location} onChange={update("location")} placeholder="Birmingham" required />
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+                  <Input id="email" type="email" value={form.email} onChange={update("email")} placeholder="jane@example.co.uk" required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input id="phone" type="tel" value={form.phone} onChange={update("phone")} placeholder="07700 900000" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="website">Website (optional)</Label>
+                <Input id="website" type="url" value={form.website} onChange={update("website")} placeholder="https://smithelectrical.co.uk" />
+              </div>
+
+              <div className="border-t border-border pt-4 space-y-4">
+                <p className="text-sm font-semibold text-muted-foreground">Create your account</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
+                    <Input id="password" type="password" value={form.password} onChange={update("password")} placeholder="Min. 8 characters" required minLength={8} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="confirm_password">Confirm password <span className="text-destructive">*</span></Label>
+                    <Input id="confirm_password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat password" required />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="message">Anything else you'd like us to know? (optional)</Label>
+                <textarea
+                  id="message"
+                  value={form.message}
+                  onChange={update("message")}
+                  rows={3}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                  placeholder="Additional context for your application…"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setStep("plan")}>
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 gradient-brand text-white border-0 hover:opacity-90 font-semibold"
+                >
+                  {submitting ? "Creating account…" : "Create account & continue"}
+                  {!submitting && <ArrowRight className="w-4 h-4 ml-2" />}
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center">
+                By applying you agree to our{" "}
+                <Link href="/terms" className="underline hover:text-foreground">Terms</Link> and{" "}
+                <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
+              </p>
+            </form>
+          </div>
+        </div>
+        <PublicFooter />
+      </div>
+    );
+  }
+
+  // ── Step: Sticker add-on ─────────────────────────────────────────────────────
+
+  if (step === "sticker") {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicNav />
+        <div className="flex-1 px-6 pt-32 pb-20">
+          <div className="max-w-lg mx-auto">
+            <div className="text-center mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
+                <Sticker className="w-7 h-7 text-amber-400" />
+              </div>
+              <StepBadge current={step} planCode={planCode} />
+              <h1 className="text-2xl font-extrabold mb-2">Add TVC van stickers?</h1>
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                TVC stickers on your vehicle are one of the most visible trust signals in the trade. One-time cost per van.
+              </p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {STICKER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.size}
+                  onClick={() => setStickerSize(opt.size)}
+                  className={`w-full text-left rounded-xl border p-4 transition-all ${
+                    stickerSize === opt.size
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-card hover:border-primary/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-sm">{opt.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {opt.size !== "none" && (
+                        <span className="text-sm font-bold text-foreground">£{opt.pricePerVan}/van</span>
+                      )}
+                      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                        stickerSize === opt.size ? "border-primary bg-primary" : "border-border"
+                      }`} />
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {stickerSize !== "none" && (
+              <div className="bg-card border border-border rounded-xl p-4 mb-6 space-y-3">
+                <Label htmlFor="van_count">How many vans?</Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="van_count"
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={vanCount}
+                    onChange={(e) => setVanCount(Math.max(1, Math.floor(Number(e.target.value))))}
+                    className="w-24"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    × £{stickerOpt.pricePerVan}/van
+                  </span>
+                </div>
+                <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 flex items-center justify-between">
+                  <span className="text-sm font-semibold">Sticker total</span>
+                  <span className="text-lg font-extrabold text-primary">£{stickerTotal}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Payment for stickers is separate from your membership. You'll receive a payment link after applying.</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setStep("payment")}>
+                Skip stickers
+              </Button>
+              <Button
+                className="flex-1 gradient-brand text-white border-0 hover:opacity-90 font-semibold"
+                onClick={handleStickerContinue}
+                disabled={stickerSubmitting}
+              >
+                {stickerSubmitting ? "Saving…" : stickerSize === "none" ? "Continue" : `Add stickers — £${stickerTotal}`}
+                {!stickerSubmitting && <ArrowRight className="w-4 h-4 ml-2" />}
+              </Button>
+            </div>
+          </div>
+        </div>
+        <PublicFooter />
+      </div>
+    );
+  }
+
+  // ── Step: Payment ────────────────────────────────────────────────────────────
 
   if (step === "payment") {
     return (
@@ -218,13 +622,14 @@ export default function JoinPage() {
             </div>
             <h1 className="text-3xl font-extrabold mb-4">Account created!</h1>
             <p className="text-muted-foreground mb-6 leading-relaxed">
-              Your TVC account has been created. Complete payment below to begin the verification process. You can sign in at any time using the email and password you just set.
+              Your TVC account is set up. Complete payment below to begin verification. You can sign in at any time using your email and password.
             </p>
+
             <div className="bg-card border border-border rounded-2xl p-6 mb-6 text-left space-y-3">
               <p className="text-sm font-semibold mb-2">What happens next?</p>
               {[
-                "Complete payment using the button below",
-                "Upload your verification documents (now or later from your dashboard)",
+                "Complete membership payment using the button below",
+                "Upload your verification documents (now or later)",
                 "Our team runs your 6 independent checks",
                 "You receive your TVC number and public profile once approved",
               ].map((s, i) => (
@@ -234,19 +639,44 @@ export default function JoinPage() {
                 </div>
               ))}
             </div>
+
+            {/* Membership payment */}
             {paymentUrl ? (
               <Button
                 className="w-full gradient-brand text-white border-0 hover:opacity-90 font-semibold h-11 mb-3"
                 onClick={() => window.open(paymentUrl!, "_blank", "noopener")}
               >
-                Complete Payment — £20/month
+                Pay {selectedPlan?.name} — £{selectedPlan?.price}/month
                 <ExternalLink className="w-4 h-4 ml-2" />
               </Button>
             ) : (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm text-amber-300 mb-3">
-                Payment link not yet configured. Contact us and we'll send you the payment link directly.
+                Payment link not yet configured. Contact us and we'll send the payment link directly.
               </div>
             )}
+
+            {/* Sticker payment */}
+            {stickerSize !== "none" && (
+              <div className="bg-card border border-amber-500/20 rounded-xl p-4 mb-3">
+                <p className="text-xs font-semibold text-amber-400 mb-2 flex items-center gap-1.5">
+                  <Sticker className="w-3.5 h-3.5" />
+                  Sticker order — £{stickerTotal}
+                </p>
+                {stickerPaymentUrl ? (
+                  <Button
+                    variant="outline"
+                    className="w-full border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                    onClick={() => window.open(stickerPaymentUrl!, "_blank", "noopener")}
+                  >
+                    Pay for stickers — £{stickerTotal}
+                    <ExternalLink className="w-4 h-4 ml-2" />
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Sticker payment link not yet configured. We'll contact you separately.</p>
+                )}
+              </div>
+            )}
+
             <Button variant="outline" className="w-full mb-3" onClick={() => setStep("documents")}>
               Upload documents first
             </Button>
@@ -260,6 +690,8 @@ export default function JoinPage() {
     );
   }
 
+  // ── Step: Documents ──────────────────────────────────────────────────────────
+
   if (step === "documents") {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -271,7 +703,7 @@ export default function JoinPage() {
             </div>
             <h1 className="text-2xl font-extrabold mb-2">Upload documents</h1>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-md mx-auto">
-              Upload your verification documents below to speed up the process. You can also skip and upload these later from your member dashboard.
+              Upload your verification documents below to speed up the process. You can also skip and upload these later from your dashboard.
             </p>
           </div>
 
@@ -331,11 +763,7 @@ export default function JoinPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 mt-6">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setStep("done")}
-            >
+            <Button variant="outline" className="flex-1" onClick={() => setStep("done")}>
               Skip — I'll upload later
             </Button>
             <Button
@@ -346,7 +774,6 @@ export default function JoinPage() {
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
-
           <p className="text-center text-xs text-muted-foreground mt-4">
             Documents are stored securely and only visible to TVC verifiers. PDF, JPG, PNG and WebP accepted (max 10 MB each).
           </p>
@@ -356,276 +783,38 @@ export default function JoinPage() {
     );
   }
 
-  if (step === "done") {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <PublicNav />
-        <div className="flex-1 flex items-center justify-center px-6 py-24">
-          <div className="max-w-md w-full text-center">
-            <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-extrabold mb-4">Documents uploaded!</h1>
-            <p className="text-muted-foreground mb-6 leading-relaxed">
-              Your documents have been submitted. Once your payment is confirmed, our team will begin your 6 independent checks.
-            </p>
-            {paymentUrl && (
-              <Button
-                className="w-full gradient-brand text-white border-0 hover:opacity-90 font-semibold h-11 mb-3"
-                onClick={() => window.open(paymentUrl!, "_blank", "noopener")}
-              >
-                Complete Payment — £20/month
-                <ExternalLink className="w-4 h-4 ml-2" />
-              </Button>
-            )}
-            <Button variant="outline" asChild className="w-full mb-3">
-              <Link href="/login">Sign in to your dashboard</Link>
-            </Button>
-            <Button variant="ghost" asChild className="w-full text-sm">
-              <Link href="/">Back to home</Link>
-            </Button>
-          </div>
-        </div>
-        <PublicFooter />
-      </div>
-    );
-  }
+  // ── Step: Done ───────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicNav />
-
-      {/* Hero */}
-      <section className="pt-28 pb-16 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <Badge variant="outline" className="mb-6 border-primary/30 text-primary bg-primary/5 px-3 py-1 text-xs font-medium">
-            <ShieldCheck className="w-3 h-3 mr-1.5" />
-            Join TVC Secured
-          </Badge>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-            Get independently <span className="gradient-text">verified</span>
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
-            Give customers the confidence to choose you. TVC independently verifies your business so your badge does the talking.
+      <div className="flex-1 flex items-center justify-center px-6 py-24">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-extrabold mb-4">You're all set!</h1>
+          <p className="text-muted-foreground mb-6 leading-relaxed">
+            Your documents have been submitted. Once payment is confirmed, our team will begin your 6 independent checks.
           </p>
-        </div>
-      </section>
-
-      <div className="max-w-6xl mx-auto px-6 pb-24 grid lg:grid-cols-2 gap-12 items-start w-full">
-
-        {/* Left: Pricing + Benefits */}
-        <div className="space-y-6">
-
-          {/* TVC Membership card */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">TVC Membership</p>
-                <div className="flex items-end gap-1.5">
-                  <span className="text-4xl font-extrabold">£20</span>
-                  <span className="text-muted-foreground mb-1.5 text-sm">/month</span>
-                </div>
-              </div>
-              <Badge className="bg-primary/10 text-primary border-primary/20">Standard</Badge>
-            </div>
-            <ul className="space-y-2.5 mb-6">
-              {(APP_CONFIG.planFeatures["tvc membership"]?.features ?? []).map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm">
-                  <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-            <PaymentButton
-              slug="via-membership"
-              label="Join TVC — £20/month"
-              className="gradient-brand text-white border-0 hover:opacity-90 glow-primary-sm"
-            />
-          </div>
-
-          {/* Priority Checking add-on */}
-          <div className="bg-card border border-primary/40 rounded-2xl p-6 relative overflow-hidden">
-            <div className="absolute top-3 right-3">
-              <Badge className="gradient-brand text-white border-0 text-xs">Add-on</Badge>
-            </div>
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Priority Checking</p>
-              <div className="flex items-end gap-1.5">
-                <span className="text-4xl font-extrabold">£49</span>
-                <span className="text-muted-foreground mb-1.5 text-sm">one-off</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">Get verified faster — same day or next working day.</p>
-            </div>
-            <ul className="space-y-2.5 mb-6">
-              {(APP_CONFIG.planFeatures["priority checking"]?.features ?? []).map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm">
-                  <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-            <PaymentButton
-              slug="priority-checking"
-              label="Add Priority Checking — £49"
-              className="gradient-brand text-white border-0 hover:opacity-90 glow-primary-sm"
-            />
-          </div>
-
-          {/* Benefits */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">What you get</p>
-            {BENEFITS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex gap-4 p-4 bg-card border border-border rounded-xl">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold mb-0.5">{title}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Application form */}
-        <div className="bg-card border border-border rounded-2xl p-8">
-          <h2 className="text-xl font-bold mb-1">Start your application</h2>
-          <p className="text-sm text-muted-foreground mb-6">We'll review your details and begin verification once your membership is active.</p>
-
-          {error && (
-            <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg px-4 py-3 mb-5">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="name">Your name <span className="text-destructive">*</span></Label>
-                <Input id="name" value={form.name} onChange={update("name")} placeholder="Jane Smith" required />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="business_name">Business name <span className="text-destructive">*</span></Label>
-                <Input id="business_name" value={form.business_name} onChange={update("business_name")} placeholder="Smith Electrical Ltd" required />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="trade_type">Trade type <span className="text-destructive">*</span></Label>
-              <select
-                id="trade_type"
-                value={form.trade_type}
-                onChange={update("trade_type")}
-                required
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Select trade…</option>
-                {TRADE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="location">Town / City <span className="text-destructive">*</span></Label>
-                <Input id="location" value={form.location} onChange={update("location")} placeholder="Birmingham" required />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="website">Website (optional)</Label>
-                <Input id="website" type="url" value={form.website} onChange={update("website")} placeholder="https://example.co.uk" />
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email address <span className="text-destructive">*</span></Label>
-                <Input id="email" type="email" value={form.email} onChange={update("email")} placeholder="jane@example.co.uk" required />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="phone">Phone number</Label>
-                <Input id="phone" type="tel" value={form.phone} onChange={update("phone")} placeholder="07700 900000" />
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="password">Create password <span className="text-destructive">*</span></Label>
-                <Input id="password" type="password" value={form.password} onChange={update("password")} placeholder="Min. 8 characters" autoComplete="new-password" required />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="confirm_password">Confirm password <span className="text-destructive">*</span></Label>
-                <Input id="confirm_password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat password" autoComplete="new-password" required />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="message">Anything else you'd like to tell us?</Label>
-              <textarea
-                id="message"
-                value={form.message}
-                onChange={update("message")}
-                rows={3}
-                placeholder="Accreditations, certifications, years in business…"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              />
-            </div>
-
-            <Button type="submit" disabled={submitting} className="w-full gradient-brand text-white border-0 hover:opacity-90 font-semibold h-11">
-              {submitting ? "Creating account…" : "Create Account & Submit Application"}
-              {!submitting && <ArrowRight className="w-4 h-4 ml-2" />}
+          {paymentUrl && (
+            <Button
+              className="w-full gradient-brand text-white border-0 hover:opacity-90 font-semibold h-11 mb-3"
+              onClick={() => window.open(paymentUrl!, "_blank", "noopener")}
+            >
+              Complete payment — £{selectedPlan?.price}/month
+              <ExternalLink className="w-4 h-4 ml-2" />
             </Button>
-
-            <p className="text-center text-xs text-muted-foreground">
-              By submitting you agree to our{" "}
-              <Link href="/terms" className="underline hover:text-foreground">Terms</Link>{" "}
-              and{" "}
-              <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
-            </p>
-          </form>
+          )}
+          <Button variant="outline" asChild className="w-full mb-3">
+            <Link href="/login">Sign in to your dashboard</Link>
+          </Button>
+          <Button variant="ghost" asChild className="w-full text-sm">
+            <Link href="/">Back to home</Link>
+          </Button>
         </div>
       </div>
-
       <PublicFooter />
     </div>
-  );
-}
-
-function PublicNav() {
-  return (
-    <header className="fixed top-0 inset-x-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
-      <div className="max-w-6xl mx-auto px-6 py-2 flex items-center justify-between">
-        <Link href="/" className="flex flex-col items-center">
-          <TVCLogo size={131} />
-          <span className="text-xs font-semibold tracking-wide whitespace-nowrap mt-1">
-            Trades <span style={{ color: "hsl(142, 71%, 45%)" }}>|</span> Verified <span style={{ color: "hsl(142, 71%, 45%)" }}>|</span> Checked
-          </span>
-        </Link>
-        <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
-          <Link href="/verify" className="hover:text-foreground transition-colors">Check a TVC Number</Link>
-          <Link href="/join" className="hover:text-foreground transition-colors text-foreground font-medium">Join TVC</Link>
-          <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
-        </nav>
-        <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">Login</Link>
-      </div>
-    </header>
-  );
-}
-
-function PublicFooter() {
-  return (
-    <footer className="border-t border-border py-8 px-6 mt-auto">
-      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <TVCLogo size={74} />
-          <span className="font-semibold text-foreground">Approved</span>
-        </div>
-        <div className="flex items-center gap-6">
-          <Link href="/disclaimer" className="hover:text-foreground transition-colors">Disclaimer</Link>
-          <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
-          <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
-        </div>
-        <p>© {new Date().getFullYear()} {APP_CONFIG.legalName}</p>
-      </div>
-    </footer>
   );
 }

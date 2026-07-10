@@ -87,7 +87,7 @@ router.get("/via/verify/:viaNumber", async (req, res) => {
 
 // POST /api/via/apply — public application form submission (creates Supabase auth user)
 router.post("/via/apply", async (req, res) => {
-  const { name, business_name, trade_type, location, website, email, phone, message, password } = req.body || {};
+  const { name, business_name, trade_type, location, website, email, phone, message, password, plan_code, plan_price_pence } = req.body || {};
 
   if (!name || !business_name || !trade_type || !email) {
     return err(res, "name, business_name, trade_type, and email are required", 400);
@@ -134,6 +134,7 @@ router.post("/via/apply", async (req, res) => {
     if (bizErr) throw bizErr;
 
     // 3. Create application at "pending_payment" status
+    const resolvedPlanCode = ["tvc_basic", "tvc_plus"].includes(plan_code) ? plan_code : null;
     const { data: appl, error: applErr } = await supabase
       .from("applications")
       .insert({
@@ -143,19 +144,24 @@ router.post("/via/apply", async (req, res) => {
         applicant_phone: phone || null,
         message: message || null,
         status: "pending_payment",
+        plan_code: resolvedPlanCode,
+        plan_price_pence: plan_price_pence ? Number(plan_price_pence) : null,
       })
       .select()
       .single();
 
     if (applErr) throw applErr;
 
-    // 4. Fetch the membership payment link (best-effort — no failure if not configured)
+    // 4. Fetch the correct payment link for the chosen plan (best-effort)
     let paymentUrl: string | null = null;
     try {
+      const paymentSlug = resolvedPlanCode === "tvc_basic" ? "tvc-basic"
+        : resolvedPlanCode === "tvc_plus" ? "tvc-plus"
+        : "via-membership";
       const { data: pl } = await supabase
         .from("payment_links")
         .select("url")
-        .eq("slug", "via-membership")
+        .eq("slug", paymentSlug)
         .eq("is_active", true)
         .maybeSingle();
       paymentUrl = pl?.url ?? null;
@@ -166,13 +172,60 @@ router.post("/via/apply", async (req, res) => {
       await supabase.from("events").insert({
         event_type: "application_submit",
         actor: email,
-        meta: { business_name, trade_type },
+        meta: { business_name, trade_type, plan_code: resolvedPlanCode },
       });
     } catch { /* non-fatal */ }
 
     return ok(res, { ok: true, id: appl.id, payment_url: paymentUrl }, 201);
   } catch (e: any) {
     logger.error({ err: e }, "POST /via/apply error");
+    return err(res, e.message);
+  }
+});
+
+// POST /api/via/sticker-orders — save a sticker order linked to an application
+router.post("/via/sticker-orders", async (req, res) => {
+  const { application_id, sticker_size, van_count, price_per_van_pence, expected_total_pence } = req.body || {};
+  if (!application_id || !sticker_size || !van_count) {
+    return err(res, "application_id, sticker_size, and van_count are required", 400);
+  }
+  if (!["small", "medium"].includes(sticker_size)) {
+    return err(res, "sticker_size must be small or medium", 400);
+  }
+  const count = Number(van_count);
+  if (!Number.isInteger(count) || count < 1) {
+    return err(res, "van_count must be a whole number ≥ 1", 400);
+  }
+
+  if (!isSupabaseConfigured()) {
+    return ok(res, {
+      id: `mock-sticker-${Date.now()}`,
+      application_id, sticker_size, van_count: count,
+      payment_status: "pending", fulfilment_status: "awaiting_payment",
+    }, 201);
+  }
+
+  try {
+    const { data: appl } = await supabase.from("applications").select("business_id").eq("id", application_id).single();
+    if (!appl) return err(res, "Application not found", 404);
+    const { data, error } = await supabase
+      .from("sticker_orders")
+      .insert({
+        application_id,
+        business_id: appl.business_id,
+        sticker_size,
+        van_count: count,
+        price_per_van_pence: price_per_van_pence ? Number(price_per_van_pence) : null,
+        expected_total_pence: expected_total_pence ? Number(expected_total_pence) : null,
+        payment_status: "pending",
+        fulfilment_status: "awaiting_payment",
+      })
+      .select()
+      .single();
+    if (error) return err(res, error.message);
+    return ok(res, data, 201);
+  } catch (e: any) {
+    logger.error({ err: e }, "POST /via/sticker-orders error");
     return err(res, e.message);
   }
 });
@@ -356,8 +409,12 @@ router.get("/admin/via/members", requireAdmin, async (_req, res) => {
 // =============================================================================
 
 const MOCK_PAYMENT_LINKS = [
-  { id: "pl-1", slug: "via-membership",    label: "TVC Membership (£20/month)",    url: null, is_active: true, sort_order: 0 },
-  { id: "pl-2", slug: "priority-checking", label: "Priority Checking (£49 one-off)", url: null, is_active: true, sort_order: 1 },
+  { id: "pl-1", slug: "via-membership",    label: "VIA Membership (legacy — £20/month)",  url: null, is_active: true, sort_order: 0 },
+  { id: "pl-2", slug: "tvc-basic",         label: "TVC Basic (£15/month)",                url: null, is_active: true, sort_order: 1 },
+  { id: "pl-3", slug: "tvc-plus",          label: "TVC Plus (£30/month)",                 url: null, is_active: true, sort_order: 2 },
+  { id: "pl-4", slug: "sticker-small",     label: "TVC Van Sticker — Small (£30/van)",   url: null, is_active: true, sort_order: 3 },
+  { id: "pl-5", slug: "sticker-medium",    label: "TVC Van Sticker — Medium (£50/van)",  url: null, is_active: true, sort_order: 4 },
+  { id: "pl-6", slug: "priority-checking", label: "Priority Checking (legacy — £49)",     url: null, is_active: true, sort_order: 5 },
 ];
 
 const MOCK_PROFILE = {
