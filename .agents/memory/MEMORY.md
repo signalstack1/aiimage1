@@ -3,3 +3,4 @@
 - [Shallow-clone GitHub push failure](git-shallow-push-fix.md) — repl git repos start shallow; pushing to a fresh empty GitHub remote fails with "did not receive expected object" / index-pack error.
 - [Document system migration](doc-system-migration.md) — new columns added to documents table; SUPABASE_PAT needed for auto-migration; API has resilient fallback until migration runs.
 - [VIA project patterns](via-project-patterns.md) — key conventions: auth (ADMIN_PASSWORD/requireAdmin, Supabase member JWT), storage bucket "member-documents", BASE_URL pattern, VIA green HSL 142 71% 45%.
+- [TVC Secured architecture](tvc-architecture.md) — Supabase + Vercel only; Replit is builder. All API in `api/[...path].ts` Vercel Function inside `artifacts/signal-saas/`.

@@ -1,6 +1,14 @@
 import { supabase, configured } from "./_lib/supabase";
 import { makeAdminToken, verifyAdminToken, getAdminToken } from "./_lib/auth";
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "20mb",
+    },
+  },
+};
+
 const DOC_BUCKET = "member-documents";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
