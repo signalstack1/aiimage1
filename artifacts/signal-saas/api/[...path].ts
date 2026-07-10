@@ -108,7 +108,7 @@ export default async function handler(req: any, res: any) {
       const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
         email: (email as string).trim().toLowerCase(),
         password: password as string,
-        email_confirm: false,
+        email_confirm: true,
       });
       if (authErr) {
         if ((authErr as any).status === 422 || authErr.message?.toLowerCase().includes("already")) {
