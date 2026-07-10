@@ -82,6 +82,7 @@ const MOCK_ME = {
     contact_phone: null,
     contact_enabled: false,
     description: null,
+    business_intro: null,
     logo_url: null,
     referral_code: "REF12345",
   },
@@ -105,18 +106,18 @@ router.get("/member/me", requireMember, async (req: AuthedRequest, res) => {
     {
       const { data, error: bizErr } = await supabase
         .from("businesses")
-        .select("id, via_number, business_name, trade_type, location, website, contact_phone, contact_enabled, description, logo_url, referral_code")
+        .select("id, via_number, business_name, trade_type, location, website, contact_phone, contact_enabled, description, business_intro, logo_url, referral_code")
         .eq("user_id", req.userId!)
         .maybeSingle();
       if (bizErr && (bizErr.code === "42703" || bizErr.message?.includes("column"))) {
-        // logo_url or referral_code column may not exist in dev DB — fall back
+        // logo_url or referral_code or business_intro column may not exist in dev DB — fall back
         const { data: fallback, error: fbErr } = await supabase
           .from("businesses")
           .select("id, via_number, business_name, trade_type, location, website, contact_phone, contact_enabled, description")
           .eq("user_id", req.userId!)
           .maybeSingle();
         if (fbErr) throw fbErr;
-        biz = fallback ? { ...fallback, logo_url: null, referral_code: null } : null;
+        biz = fallback ? { ...fallback, business_intro: null, logo_url: null, referral_code: null } : null;
       } else if (bizErr) {
         throw bizErr;
       } else {
@@ -506,6 +507,266 @@ router.get("/member/verification-checks", requireMember, async (req: AuthedReque
 
     if (error) return err(res, error.message);
     return ok(res, data || []);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// PATCH /api/member/business-intro — update business introduction (Plus/legacy)
+// =============================================================================
+router.patch("/member/business-intro", requireMember, async (req: AuthedRequest, res) => {
+  const { business_intro } = req.body || {};
+
+  if (!isSupabaseConfigured()) {
+    return ok(res, { business_intro: business_intro ?? null });
+  }
+
+  try {
+    const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).maybeSingle();
+    if (biz) {
+      const { data: appl } = await supabase.from("applications").select("plan_code").eq("business_id", (biz as any).id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!getPlanEntitlements((appl as any)?.plan_code ?? null).portfolio_access) {
+        return err(res, "Business intro is a TVC Plus feature.", 403);
+      }
+    }
+
+    const intro = business_intro ? String(business_intro).slice(0, 1500) : null;
+    const { data, error } = await supabase.from("businesses")
+      .update({ business_intro: intro, updated_at: new Date().toISOString() })
+      .eq("user_id", req.userId!)
+      .select("business_intro")
+      .single();
+    if (error) return err(res, error.message);
+    return ok(res, data);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// GET /api/member/portfolio — list portfolio images
+// =============================================================================
+router.get("/member/portfolio", requireMember, async (req: AuthedRequest, res) => {
+  if (!isSupabaseConfigured()) return ok(res, []);
+
+  try {
+    const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
+    if (!biz) return ok(res, []);
+
+    const { data, error } = await supabase.from("portfolio_images")
+      .select("id, public_url, description, upload_month, display_order, created_at")
+      .eq("business_id", biz.id)
+      .order("display_order", { ascending: true });
+
+    if (error) {
+      if (error.code === "42P01" || error.message?.includes("does not exist")) return ok(res, []);
+      return err(res, error.message);
+    }
+    return ok(res, data ?? []);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// POST /api/member/portfolio — upload a portfolio image
+// Body: { file_data: base64, mime_type, file_name, description? }
+// =============================================================================
+router.post("/member/portfolio", requireMember, async (req: AuthedRequest, res) => {
+  const { file_data, mime_type, file_name, description } = req.body || {};
+
+  if (!file_data || !mime_type || !file_name) {
+    return err(res, "file_data (base64), mime_type, and file_name are required", 400);
+  }
+
+  if (!isSupabaseConfigured()) {
+    return ok(res, {
+      id: `mock-img-${Date.now()}`,
+      public_url: "https://placehold.co/600x400?text=Portfolio",
+      description: description ?? null,
+      upload_month: new Date().toISOString().slice(0, 7),
+      display_order: 0,
+      created_at: new Date().toISOString(),
+    }, 201);
+  }
+
+  try {
+    const { data: biz, error: bizErr } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
+    if (bizErr || !biz) return err(res, "Business not found", 404);
+
+    const { data: appl } = await supabase.from("applications").select("plan_code").eq("business_id", biz.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const pc = (appl as any)?.plan_code ?? null;
+    if (!getPlanEntitlements(pc).portfolio_access) return err(res, "Portfolio is a TVC Plus feature.", 403);
+
+    const uploadMonth = new Date().toISOString().slice(0, 7);
+    const { count: monthCount } = await supabase.from("portfolio_images").select("id", { count: "exact", head: true }).eq("business_id", biz.id).eq("upload_month", uploadMonth);
+    const imgLimit = Number(getPlanEntitlements(pc).monthly_image_limit) || 20;
+    if ((monthCount ?? 0) >= imgLimit) {
+      return err(res, `Monthly upload limit of ${imgLimit} images reached. Limit resets next month.`, 429);
+    }
+
+    await ensurePortfolioBucket();
+
+    const ext = (file_name as string).split(".").pop()?.toLowerCase() || "jpg";
+    const storagePath = `${biz.id}/${uploadMonth}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const buffer = Buffer.from(file_data as string, "base64");
+
+    const { error: uploadErr } = await supabase.storage.from(PORTFOLIO_BUCKET).upload(storagePath, buffer, { contentType: mime_type, upsert: false });
+    if (uploadErr) throw uploadErr;
+
+    const { data: urlData } = supabase.storage.from(PORTFOLIO_BUCKET).getPublicUrl(storagePath);
+    const publicUrl = (urlData as any)?.publicUrl ?? null;
+
+    const { data: img, error: imgErr } = await supabase.from("portfolio_images").insert({
+      business_id: biz.id,
+      storage_path: storagePath,
+      public_url: publicUrl,
+      description: description ? String(description).slice(0, 300) : null,
+      upload_month: uploadMonth,
+      display_order: monthCount ?? 0,
+    }).select().single();
+    if (imgErr) throw imgErr;
+    return ok(res, img, 201);
+  } catch (e: any) {
+    logger.error({ err: e }, "POST /member/portfolio error");
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// DELETE /api/member/portfolio/:id — delete a portfolio image (no quota restore)
+// =============================================================================
+router.delete("/member/portfolio/:id", requireMember, async (req: AuthedRequest, res) => {
+  if (!isSupabaseConfigured()) return ok(res, { deleted: true });
+
+  try {
+    const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
+    if (!biz) return err(res, "Business not found", 404);
+
+    const { data: img } = await supabase.from("portfolio_images").select("storage_path").eq("id", req.params.id).eq("business_id", biz.id).maybeSingle();
+    if (!img) return err(res, "Image not found", 404);
+
+    if ((img as any).storage_path) {
+      await supabase.storage.from(PORTFOLIO_BUCKET).remove([(img as any).storage_path]);
+    }
+
+    const { error } = await supabase.from("portfolio_images").delete().eq("id", req.params.id).eq("business_id", biz.id);
+    if (error) return err(res, error.message);
+    return ok(res, { deleted: true });
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// GET /api/member/social-links — list social links for current member
+// =============================================================================
+router.get("/member/social-links", requireMember, async (req: AuthedRequest, res) => {
+  if (!isSupabaseConfigured()) return ok(res, []);
+
+  try {
+    const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
+    if (!biz) return ok(res, []);
+
+    const { data, error } = await supabase.from("social_links").select("id, platform, url").eq("business_id", biz.id).order("platform");
+    if (error) {
+      if (error.code === "42P01" || error.message?.includes("does not exist")) return ok(res, []);
+      return err(res, error.message);
+    }
+    return ok(res, data ?? []);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// PUT /api/member/social-links — replace all social links at once
+// Body: { links: [{ platform, url }] }
+// =============================================================================
+router.put("/member/social-links", requireMember, async (req: AuthedRequest, res) => {
+  const { links } = req.body || {};
+  if (!Array.isArray(links)) return err(res, "links array required", 400);
+
+  if (!isSupabaseConfigured()) return ok(res, links);
+
+  try {
+    const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
+    if (!biz) return err(res, "Business not found", 404);
+
+    const { data: appl } = await supabase.from("applications").select("plan_code").eq("business_id", biz.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!getPlanEntitlements((appl as any)?.plan_code ?? null).social_links) {
+      return err(res, "Social links are a TVC Plus feature.", 403);
+    }
+
+    const VALID_PLATFORMS = ["facebook", "instagram", "linkedin", "tiktok", "youtube", "x", "other"];
+    const rows = (links as any[])
+      .filter((l: any) => VALID_PLATFORMS.includes(l.platform) && typeof l.url === "string" && l.url.trim().startsWith("https://"))
+      .map((l: any) => ({ business_id: biz.id, platform: l.platform, url: l.url.trim() }));
+
+    await supabase.from("social_links").delete().eq("business_id", biz.id);
+    if (rows.length > 0) {
+      const { error: insertErr } = await supabase.from("social_links").insert(rows);
+      if (insertErr) return err(res, insertErr.message);
+    }
+
+    const { data: result } = await supabase.from("social_links").select("id, platform, url").eq("business_id", biz.id).order("platform");
+    return ok(res, result ?? []);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// GET /api/member/testimonials — list testimonials for current member
+// =============================================================================
+router.get("/member/testimonials", requireMember, async (req: AuthedRequest, res) => {
+  if (!isSupabaseConfigured()) return ok(res, []);
+
+  try {
+    const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
+    if (!biz) return ok(res, []);
+
+    const { data, error } = await supabase.from("testimonials")
+      .select("id, customer_name, testimonial_text, customer_email, service_received, work_date, approval_status, moderation_notes, submitted_at, reviewed_at")
+      .eq("business_id", biz.id)
+      .order("submitted_at", { ascending: false });
+
+    if (error) {
+      if (error.code === "42P01" || error.message?.includes("does not exist")) return ok(res, []);
+      return err(res, error.message);
+    }
+    return ok(res, data ?? []);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// PATCH /api/member/testimonials/:id — member edits a testimonial before approval
+// =============================================================================
+router.patch("/member/testimonials/:id", requireMember, async (req: AuthedRequest, res) => {
+  if (!isSupabaseConfigured()) return ok(res, { id: req.params.id, ...req.body });
+
+  try {
+    const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
+    if (!biz) return err(res, "Business not found", 404);
+
+    const { customer_name, testimonial_text, customer_email, service_received, work_date } = req.body || {};
+    const { data, error } = await supabase.from("testimonials")
+      .update({
+        ...(customer_name     !== undefined && { customer_name }),
+        ...(testimonial_text  !== undefined && { testimonial_text }),
+        ...(customer_email    !== undefined && { customer_email }),
+        ...(service_received  !== undefined && { service_received }),
+        ...(work_date         !== undefined && { work_date: work_date || null }),
+      })
+      .eq("id", req.params.id)
+      .eq("business_id", biz.id)
+      .select()
+      .single();
+    if (error) return err(res, error.message);
+    return ok(res, data);
   } catch (e: any) {
     return err(res, e.message);
   }

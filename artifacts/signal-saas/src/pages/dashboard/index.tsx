@@ -427,7 +427,7 @@ export default function DashboardHome() {
               {!isBasic && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 ml-auto">TVC Plus</span>}
             </div>
             <p className="text-xs text-muted-foreground">Write a detailed intro about your experience, specialisms, and service area.</p>
-            {!isBasic && <p className="text-xs text-muted-foreground mt-3 italic">Coming soon — being built now.</p>}
+            {!isBasic && <Link href="/dashboard/profile" className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium">Edit introduction <ArrowRight className="w-3 h-3" /></Link>}
           </div>
 
           {/* Customer Testimonials */}
@@ -447,7 +447,7 @@ export default function DashboardHome() {
               {!isBasic && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 ml-auto">TVC Plus</span>}
             </div>
             <p className="text-xs text-muted-foreground">Display verified customer reviews and testimonials on your public profile.</p>
-            {!isBasic && <p className="text-xs text-muted-foreground mt-3 italic">Coming soon — being built now.</p>}
+            {!isBasic && <Link href="/dashboard/testimonials" className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium">Manage testimonials <ArrowRight className="w-3 h-3" /></Link>}
           </div>
         </div>
 

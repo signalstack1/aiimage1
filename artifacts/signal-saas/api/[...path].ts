@@ -619,6 +619,62 @@ export default async function handler(req: any, res: any) {
         return;
       }
 
+      // GET /api/admin/portfolio?business_id=
+      if (g1 === "portfolio" && !g2 && method === "GET") {
+        const bqId = req.query.business_id as string;
+        if (!bqId) { fail(res, "business_id query param required", 400); return; }
+        if (!configured) { ok(res, []); return; }
+        const { data, error } = await supabase.from("portfolio_images")
+          .select("id,public_url,storage_path,description,upload_month,display_order,created_at")
+          .eq("business_id", bqId).order("created_at",{ascending:false});
+        if (error) {
+          if (error.code === "42P01" || error.message?.includes("does not exist")) { ok(res, []); return; }
+          fail(res, error.message); return;
+        }
+        ok(res, data ?? []);
+        return;
+      }
+
+      // DELETE /api/admin/portfolio-images/:id
+      if (g1 === "portfolio-images" && g2 && !g3 && method === "DELETE") {
+        if (!configured) { ok(res, { deleted: true }); return; }
+        const { data: img } = await supabase.from("portfolio_images").select("storage_path").eq("id",g2).maybeSingle();
+        if ((img as any)?.storage_path) await supabase.storage.from(PORTFOLIO_BUCKET).remove([(img as any).storage_path]).catch(() => {});
+        await supabase.from("portfolio_images").delete().eq("id",g2);
+        ok(res, { deleted: true });
+        return;
+      }
+
+      // GET /api/admin/testimonials?business_id=
+      if (g1 === "testimonials" && !g2 && method === "GET") {
+        if (!configured) { ok(res, []); return; }
+        let tQuery = supabase.from("testimonials")
+          .select("id,business_id,customer_name,testimonial_text,customer_email,service_received,work_date,approval_status,moderation_notes,submitted_at,reviewed_at")
+          .order("submitted_at",{ascending:false});
+        const tbId = req.query.business_id as string;
+        if (tbId) tQuery = tQuery.eq("business_id", tbId);
+        const { data: tData, error: tErr } = await tQuery;
+        if (tErr) {
+          if (tErr.code === "42P01" || tErr.message?.includes("does not exist")) { ok(res, []); return; }
+          fail(res, tErr.message); return;
+        }
+        ok(res, tData ?? []);
+        return;
+      }
+
+      // PATCH /api/admin/testimonials/:id
+      if (g1 === "testimonials" && g2 && !g3 && method === "PATCH") {
+        const { approval_status, moderation_notes } = req.body ?? {};
+        if (!["approved","rejected","pending"].includes(approval_status)) { fail(res, "approval_status must be 'approved', 'rejected', or 'pending'", 400); return; }
+        if (!configured) { ok(res, { id:g2, approval_status }); return; }
+        const { data: tPatch, error: tPatchErr } = await supabase.from("testimonials")
+          .update({ approval_status, moderation_notes: moderation_notes || null, reviewed_at: new Date().toISOString() })
+          .eq("id",g2).select().single();
+        if (tPatchErr) { fail(res, tPatchErr.message); return; }
+        ok(res, tPatch);
+        return;
+      }
+
       fail(res, "Admin route not found", 404);
       return;
     }
@@ -796,6 +852,158 @@ export default async function handler(req: any, res: any) {
           .eq("business_id",(biz as any).id).order("ordered_at",{ascending:false});
         if (error) { fail(res, error.message); return; }
         ok(res, data ?? []);
+        return;
+      }
+
+      // PATCH /api/member/business-intro
+      if (g1 === "business-intro" && method === "PATCH") {
+        const { business_intro } = req.body ?? {};
+        if (!configured) { ok(res, { business_intro }); return; }
+        const { data: bizForPlan } = await supabase.from("businesses").select("id").eq("user_id",userId).maybeSingle();
+        if (bizForPlan) {
+          const { data: applForPlan } = await supabase.from("applications").select("plan_code").eq("business_id",(bizForPlan as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+          if (!getPlanEntitlements((applForPlan as any)?.plan_code ?? null).portfolio_access) {
+            fail(res, "Business intro is a TVC Plus feature.", 403); return;
+          }
+        }
+        const intro = business_intro ? String(business_intro).slice(0, 1500) : null;
+        const { data: biData, error: biErr } = await supabase.from("businesses").update({ business_intro: intro, updated_at: new Date().toISOString() }).eq("user_id",userId).select("business_intro").single();
+        if (biErr) { fail(res, biErr.message); return; }
+        ok(res, biData);
+        return;
+      }
+
+      // GET /api/member/portfolio
+      if (g1 === "portfolio" && !g2 && method === "GET") {
+        if (!configured) { ok(res, []); return; }
+        const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
+        if (!biz) { ok(res, []); return; }
+        const { data, error } = await supabase.from("portfolio_images")
+          .select("id,public_url,description,upload_month,display_order,created_at")
+          .eq("business_id",(biz as any).id).order("display_order",{ascending:true});
+        if (error) {
+          if (error.code === "42P01" || error.message?.includes("does not exist")) { ok(res, []); return; }
+          fail(res, error.message); return;
+        }
+        ok(res, data ?? []);
+        return;
+      }
+
+      // POST /api/member/portfolio — upload a portfolio image
+      if (g1 === "portfolio" && !g2 && method === "POST") {
+        const { file_data, mime_type, file_name, description } = req.body ?? {};
+        if (!file_data || !mime_type || !file_name) { fail(res, "file_data, mime_type, and file_name are required", 400); return; }
+        if (!configured) { ok(res, { id:`mock-img-${Date.now()}`, public_url:"https://placehold.co/600x400?text=Portfolio", description:description??null, upload_month:new Date().toISOString().slice(0,7), display_order:0, created_at:new Date().toISOString() }, 201); return; }
+        const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
+        if (!biz) { fail(res, "Business not found", 404); return; }
+        const { data: applForPlan } = await supabase.from("applications").select("plan_code").eq("business_id",(biz as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+        const pc = (applForPlan as any)?.plan_code ?? null;
+        if (!getPlanEntitlements(pc).portfolio_access) { fail(res, "Portfolio is a TVC Plus feature.", 403); return; }
+        const uploadMonth = new Date().toISOString().slice(0,7);
+        const { count: monthCount } = await supabase.from("portfolio_images").select("id",{count:"exact",head:true}).eq("business_id",(biz as any).id).eq("upload_month",uploadMonth);
+        const imgLimit = Number(getPlanEntitlements(pc).monthly_image_limit) || 20;
+        if ((monthCount ?? 0) >= imgLimit) { fail(res, `Monthly upload limit of ${imgLimit} images reached. Limit resets next month.`, 429); return; }
+        const ext = (file_name as string).split(".").pop()?.toLowerCase() ?? "jpg";
+        const storagePath = `${(biz as any).id}/${uploadMonth}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const buffer = Buffer.from(file_data as string, "base64");
+        const { error: uploadErr } = await supabase.storage.from(PORTFOLIO_BUCKET).upload(storagePath, buffer, { contentType: mime_type, upsert: false });
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = supabase.storage.from(PORTFOLIO_BUCKET).getPublicUrl(storagePath);
+        const publicUrl = (urlData as any)?.publicUrl ?? null;
+        const { data: img, error: imgErr } = await supabase.from("portfolio_images").insert({
+          business_id: (biz as any).id, storage_path: storagePath, public_url: publicUrl,
+          description: description ? String(description).slice(0,300) : null,
+          upload_month: uploadMonth, display_order: monthCount ?? 0,
+        }).select().single();
+        if (imgErr) throw imgErr;
+        ok(res, img, 201);
+        return;
+      }
+
+      // DELETE /api/member/portfolio/:id
+      if (g1 === "portfolio" && g2 && !g3 && method === "DELETE") {
+        if (!configured) { ok(res, { deleted: true }); return; }
+        const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
+        if (!biz) { fail(res, "Business not found", 404); return; }
+        const { data: img } = await supabase.from("portfolio_images").select("storage_path").eq("id",g2).eq("business_id",(biz as any).id).maybeSingle();
+        if (!img) { fail(res, "Image not found", 404); return; }
+        if ((img as any).storage_path) await supabase.storage.from(PORTFOLIO_BUCKET).remove([(img as any).storage_path]).catch(() => {});
+        const { error: delImgErr } = await supabase.from("portfolio_images").delete().eq("id",g2).eq("business_id",(biz as any).id);
+        if (delImgErr) { fail(res, delImgErr.message); return; }
+        ok(res, { deleted: true });
+        return;
+      }
+
+      // GET /api/member/social-links
+      if (g1 === "social-links" && !g2 && method === "GET") {
+        if (!configured) { ok(res, []); return; }
+        const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
+        if (!biz) { ok(res, []); return; }
+        const { data, error } = await supabase.from("social_links").select("id,platform,url").eq("business_id",(biz as any).id).order("platform");
+        if (error) {
+          if (error.code === "42P01" || error.message?.includes("does not exist")) { ok(res, []); return; }
+          fail(res, error.message); return;
+        }
+        ok(res, data ?? []);
+        return;
+      }
+
+      // PUT /api/member/social-links — replace all social links at once
+      if (g1 === "social-links" && !g2 && method === "PUT") {
+        const { links } = req.body ?? {};
+        if (!Array.isArray(links)) { fail(res, "links array required", 400); return; }
+        if (!configured) { ok(res, links); return; }
+        const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
+        if (!biz) { fail(res, "Business not found", 404); return; }
+        const { data: applForSL } = await supabase.from("applications").select("plan_code").eq("business_id",(biz as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+        if (!getPlanEntitlements((applForSL as any)?.plan_code ?? null).social_links) { fail(res, "Social links are a TVC Plus feature.", 403); return; }
+        const VALID_PLATFORMS = ["facebook","instagram","linkedin","tiktok","youtube","x","other"];
+        const rows = (links as any[])
+          .filter((l: any) => VALID_PLATFORMS.includes(l.platform) && typeof l.url === "string" && l.url.trim().startsWith("https://"))
+          .map((l: any) => ({ business_id: (biz as any).id, platform: l.platform, url: l.url.trim() }));
+        await supabase.from("social_links").delete().eq("business_id",(biz as any).id);
+        if (rows.length > 0) {
+          const { error: slInsErr } = await supabase.from("social_links").insert(rows);
+          if (slInsErr) { fail(res, slInsErr.message); return; }
+        }
+        const { data: slResult } = await supabase.from("social_links").select("id,platform,url").eq("business_id",(biz as any).id).order("platform");
+        ok(res, slResult ?? []);
+        return;
+      }
+
+      // GET /api/member/testimonials
+      if (g1 === "testimonials" && !g2 && method === "GET") {
+        if (!configured) { ok(res, []); return; }
+        const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
+        if (!biz) { ok(res, []); return; }
+        const { data, error } = await supabase.from("testimonials")
+          .select("id,customer_name,testimonial_text,customer_email,service_received,work_date,approval_status,moderation_notes,submitted_at,reviewed_at")
+          .eq("business_id",(biz as any).id).order("submitted_at",{ascending:false});
+        if (error) {
+          if (error.code === "42P01" || error.message?.includes("does not exist")) { ok(res, []); return; }
+          fail(res, error.message); return;
+        }
+        ok(res, data ?? []);
+        return;
+      }
+
+      // PATCH /api/member/testimonials/:id — member can update before approval
+      if (g1 === "testimonials" && g2 && !g3 && method === "PATCH") {
+        if (!configured) { ok(res, { id:g2, ...req.body }); return; }
+        const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
+        if (!biz) { fail(res, "Business not found", 404); return; }
+        const { customer_name, testimonial_text, customer_email, service_received, work_date } = req.body ?? {};
+        const { data: tmData, error: tmErr } = await supabase.from("testimonials")
+          .update({
+            ...(customer_name !== undefined && { customer_name }),
+            ...(testimonial_text !== undefined && { testimonial_text }),
+            ...(customer_email !== undefined && { customer_email }),
+            ...(service_received !== undefined && { service_received }),
+            ...(work_date !== undefined && { work_date: work_date || null }),
+          })
+          .eq("id",g2).eq("business_id",(biz as any).id).select().single();
+        if (tmErr) { fail(res, tmErr.message); return; }
+        ok(res, tmData);
         return;
       }
 
