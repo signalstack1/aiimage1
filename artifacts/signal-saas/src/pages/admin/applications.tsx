@@ -39,6 +39,7 @@ interface Application {
   id: string;
   status: string;
   priority: boolean;
+  plan_code: string | null;
   applicant_name: string;
   applicant_email: string;
   created_at: string;
@@ -180,7 +181,20 @@ export default function AdminApplicationsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 text-muted-foreground hidden md:table-cell">{biz?.trade_type ?? "—"}</td>
+                      <td className="px-4 py-3.5 hidden md:table-cell">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-muted-foreground">{biz?.trade_type ?? "—"}</span>
+                          {app.plan_code && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full w-fit ${
+                              app.plan_code === "tvc_plus"
+                                ? "bg-primary/10 text-primary border border-primary/20"
+                                : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                            }`}>
+                              {app.plan_code === "tvc_plus" ? "Plus" : "Basic"}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3.5 text-muted-foreground hidden lg:table-cell">{biz?.location ?? "—"}</td>
                       <td className="px-4 py-3.5 hidden lg:table-cell">
                         <div>

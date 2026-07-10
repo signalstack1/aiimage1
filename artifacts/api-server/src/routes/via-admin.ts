@@ -311,10 +311,10 @@ router.get("/admin/applications/:id", requireAdmin, async (req, res) => {
 // is returned without any partial writes.
 router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { status, via_number, via_number_for_business_id } = req.body || {};
+  const { status, via_number, via_number_for_business_id, plan_code, plan_change_note } = req.body || {};
 
   if (!isSupabaseConfigured()) {
-    return ok(res, { id, status, via_number });
+    return ok(res, { id, status, via_number, plan_code });
   }
 
   try {
@@ -330,7 +330,6 @@ router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
         .eq("via_number", normalized)
         .maybeSingle();
       if (conflict && conflict.id !== via_number_for_business_id) {
-        // Return 409 — application status is NOT changed
         return err(res, `VIA number ${normalized} is already assigned to another business`, 409);
       }
 
@@ -352,13 +351,41 @@ router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
       } catch { /* non-fatal */ }
     }
 
-    // ── STEP 4: Update application status (after VIA safely written, or skipped) ─
+    // ── STEP 4: Update application status ─────────────────────────────────────
     if (status) {
       const { error: applErr } = await supabase
         .from("applications")
         .update({ status, updated_at: new Date().toISOString() })
         .eq("id", id);
       if (applErr) throw applErr;
+    }
+
+    // ── STEP 5: Plan code change ───────────────────────────────────────────────
+    if ("plan_code" in (req.body || {})) {
+      const newPlan = plan_code || null;
+
+      // Fetch current plan for audit log
+      const { data: currentAppl } = await supabase
+        .from("applications")
+        .select("plan_code, business_id")
+        .eq("id", id)
+        .maybeSingle();
+
+      const { error: planErr } = await supabase
+        .from("applications")
+        .update({ plan_code: newPlan, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (planErr) throw planErr;
+
+      // Audit log to admin_notes
+      const oldPlan = currentAppl?.plan_code ?? null;
+      const noteBody = plan_change_note?.trim()
+        ? `Plan changed: ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}. Notes: ${plan_change_note.trim()}`
+        : `Plan changed: ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}.`;
+      await supabase.from("admin_notes").insert({
+        application_id: id,
+        body: noteBody,
+      }).throwOnError();
     }
 
     return ok(res, { ok: true });

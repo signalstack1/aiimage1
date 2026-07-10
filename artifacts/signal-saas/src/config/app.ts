@@ -231,6 +231,59 @@ export const APP_CONFIG = {
   } as Record<string, boolean>,
 };
 
+// ── Plan Entitlements ─────────────────────────────────────────────────────────
+/**
+ * Central definition of what each plan includes.
+ * Import this wherever plan checks are needed — never hardcode plan checks inline.
+ * Legacy members (null plan_code) get full access until manually assigned.
+ */
+export const PLAN_ENTITLEMENTS = {
+  tvc_basic: {
+    name: "TVC Basic",
+    price: "£15/month",
+    pricePence: 1500,
+    paymentSlug: "tvc-basic",
+    enhanced_profile: false,
+    portfolio_access: false,
+    social_links: false,
+    testimonial_access: false,
+    priority_verification: false,
+    monthly_image_limit: 0,
+  },
+  tvc_plus: {
+    name: "TVC Plus",
+    price: "£30/month",
+    pricePence: 3000,
+    paymentSlug: "tvc-plus",
+    enhanced_profile: true,
+    portfolio_access: true,
+    social_links: true,
+    testimonial_access: true,
+    priority_verification: true,
+    monthly_image_limit: 20,
+  },
+  legacy_unassigned: {
+    name: "Legacy — Unassigned",
+    price: "—",
+    pricePence: null,
+    paymentSlug: "via-membership",
+    enhanced_profile: true,
+    portfolio_access: true,
+    social_links: true,
+    testimonial_access: true,
+    priority_verification: false,
+    monthly_image_limit: 20,
+  },
+} as const;
+
+export type PlanCode = keyof typeof PLAN_ENTITLEMENTS;
+
+export function getPlanEntitlements(planCode: string | null | undefined) {
+  if (planCode === "tvc_basic") return PLAN_ENTITLEMENTS.tvc_basic;
+  if (planCode === "tvc_plus") return PLAN_ENTITLEMENTS.tvc_plus;
+  return PLAN_ENTITLEMENTS.legacy_unassigned;
+}
+
 // ── Business Presets ──────────────────────────────────────────────────────────
 /**
  * Original template presets preserved for reference.

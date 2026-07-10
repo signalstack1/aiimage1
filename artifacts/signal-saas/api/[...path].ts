@@ -318,7 +318,7 @@ export default async function handler(req: any, res: any) {
 
       // PATCH /api/admin/applications/:id
       if (g1 === "applications" && g2 && !g3 && method === "PATCH") {
-        const { status, via_number, via_number_for_business_id } = req.body ?? {};
+        const { status, via_number, via_number_for_business_id, plan_code: newPlanCode, plan_change_note } = req.body ?? {};
         if (!configured) { ok(res, { ok: true }); return; }
         if (via_number && via_number_for_business_id) {
           const normalized = (via_number as string).trim().toUpperCase();
@@ -332,6 +332,19 @@ export default async function handler(req: any, res: any) {
         if (status) {
           const { error: applErr } = await supabase.from("applications").update({ status, updated_at: new Date().toISOString() }).eq("id",g2);
           if (applErr) throw applErr;
+        }
+        if (newPlanCode !== undefined) {
+          const validPlans = ["tvc_basic", "tvc_plus", null];
+          if (!validPlans.includes(newPlanCode)) { fail(res, "plan_code must be tvc_basic, tvc_plus, or null", 400); return; }
+          const { data: currentAppl } = await supabase.from("applications").select("plan_code").eq("id",g2).single();
+          const { error: planErr } = await supabase.from("applications").update({ plan_code: newPlanCode ?? null, updated_at: new Date().toISOString() }).eq("id",g2);
+          if (planErr) throw planErr;
+          const prevPlan = currentAppl?.plan_code ?? "unassigned";
+          const nextPlan = newPlanCode ?? "unassigned";
+          const noteBody = plan_change_note?.trim()
+            ? `Plan changed: ${prevPlan} → ${nextPlan}. Notes: ${plan_change_note.trim()}`
+            : `Plan changed: ${prevPlan} → ${nextPlan}.`;
+          try { await supabase.from("admin_notes").insert({ application_id: g2, body: noteBody }); } catch { /* non-fatal */ }
         }
         ok(res, { ok: true });
         return;
@@ -589,11 +602,11 @@ export default async function handler(req: any, res: any) {
       if (g1 === "me" && method === "GET") {
         if (!configured) { ok(res, null); return; }
         const { data: biz, error: bizErr } = await supabase.from("businesses")
-          .select("id,via_number,business_name,trade_type,location,website,contact_phone,contact_enabled,description")
+          .select("id,via_number,business_name,trade_type,location,website,contact_phone,contact_enabled,description,referral_code")
           .eq("user_id", userId).maybeSingle();
         if (bizErr) throw bizErr;
         if (!biz) { ok(res, null); return; }
-        const { data: appl } = await supabase.from("applications").select("id,status,priority,created_at,updated_at")
+        const { data: appl } = await supabase.from("applications").select("id,status,priority,plan_code,created_at,updated_at")
           .eq("business_id", (biz as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
         ok(res, { business: biz, application: appl ?? null });
         return;
@@ -725,6 +738,19 @@ export default async function handler(req: any, res: any) {
         const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
         if (!biz) { ok(res, []); return; }
         const { data, error } = await supabase.from("verification_checks").select("check_type,status,checked_at").eq("business_id",(biz as any).id).order("check_type");
+        if (error) { fail(res, error.message); return; }
+        ok(res, data ?? []);
+        return;
+      }
+
+      // GET /api/member/sticker-orders
+      if (g1 === "sticker-orders" && method === "GET") {
+        if (!configured) { ok(res, []); return; }
+        const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
+        if (!biz) { ok(res, []); return; }
+        const { data, error } = await supabase.from("sticker_orders")
+          .select("id,sticker_size,van_count,price_per_van_pence,expected_total_pence,payment_status,fulfilment_status,ordered_at,paid_at,dispatched_at")
+          .eq("business_id",(biz as any).id).order("ordered_at",{ascending:false});
         if (error) { fail(res, error.message); return; }
         ok(res, data ?? []);
         return;

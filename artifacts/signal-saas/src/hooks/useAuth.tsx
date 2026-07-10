@@ -22,8 +22,9 @@ export interface MemberBusiness {
 
 export interface MemberApplication {
   id: string;
-  status: "pending" | "in_review" | "approved" | "rejected" | "expired";
+  status: "pending" | "in_review" | "approved" | "rejected" | "expired" | "pending_payment";
   priority: boolean;
+  plan_code: "tvc_basic" | "tvc_plus" | null;
   created_at: string;
   updated_at: string;
 }

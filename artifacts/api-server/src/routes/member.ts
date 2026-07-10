@@ -88,18 +88,33 @@ router.get("/member/me", requireMember, async (req: AuthedRequest, res) => {
   if (!isSupabaseConfigured()) return ok(res, MOCK_ME);
 
   try {
-    const { data: biz, error: bizErr } = await supabase
-      .from("businesses")
-      .select("id, via_number, business_name, trade_type, location, website, contact_phone, contact_enabled, description, logo_url, referral_code")
-      .eq("user_id", req.userId!)
-      .maybeSingle();
-
-    if (bizErr) throw bizErr;
+    let biz: any = null;
+    {
+      const { data, error: bizErr } = await supabase
+        .from("businesses")
+        .select("id, via_number, business_name, trade_type, location, website, contact_phone, contact_enabled, description, logo_url, referral_code")
+        .eq("user_id", req.userId!)
+        .maybeSingle();
+      if (bizErr && (bizErr.code === "42703" || bizErr.message?.includes("column"))) {
+        // logo_url or referral_code column may not exist in dev DB — fall back
+        const { data: fallback, error: fbErr } = await supabase
+          .from("businesses")
+          .select("id, via_number, business_name, trade_type, location, website, contact_phone, contact_enabled, description")
+          .eq("user_id", req.userId!)
+          .maybeSingle();
+        if (fbErr) throw fbErr;
+        biz = fallback ? { ...fallback, logo_url: null, referral_code: null } : null;
+      } else if (bizErr) {
+        throw bizErr;
+      } else {
+        biz = data;
+      }
+    }
     if (!biz) return ok(res, null); // No business record yet (user not linked to application)
 
     const { data: appl } = await supabase
       .from("applications")
-      .select("id, status, priority, created_at, updated_at")
+      .select("id, status, priority, plan_code, created_at, updated_at")
       .eq("business_id", biz.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -408,6 +423,37 @@ router.patch("/member/notifications/read-all", requireMember, async (req: Authed
 });
 
 // =============================================================================
+// GET /api/member/sticker-orders — list sticker orders for this member's business
+// =============================================================================
+router.get("/member/sticker-orders", requireMember, async (req: AuthedRequest, res) => {
+  if (!isSupabaseConfigured()) return ok(res, []);
+
+  try {
+    const { data: biz } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("user_id", req.userId!)
+      .maybeSingle();
+
+    if (!biz) return ok(res, []);
+
+    const { data, error } = await supabase
+      .from("sticker_orders")
+      .select("id, plan_slug, quantity, unit_price_pence, status, created_at, notes")
+      .eq("business_id", biz.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      if (error.code === "42P01" || error.message?.includes("does not exist")) return ok(res, []);
+      return err(res, error.message);
+    }
+    return ok(res, data || []);
+  } catch (e: any) {
+    logger.error({ err: e }, "GET /member/sticker-orders error");
+    return err(res, e.message);
+  }
+});
+
 // GET /api/member/verification-checks — get this member's checks
 // =============================================================================
 router.get("/member/verification-checks", requireMember, async (req: AuthedRequest, res) => {

@@ -55,7 +55,7 @@ interface Doc   {
   admin_notes: string|null; expiry_date: string|null;
 }
 interface AppDetail {
-  id: string; status: string; priority: boolean;
+  id: string; status: string; priority: boolean; plan_code: string | null;
   applicant_name: string; applicant_email: string; applicant_phone: string|null; message: string|null;
   created_at: string; updated_at: string;
   businesses: {
@@ -134,6 +134,11 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
   const [markingPaid, setMarkingPaid]   = useState(false);
   const [markPaidNotes, setMarkPaidNotes] = useState("");
   const [markPaidSuccess, setMarkPaidSuccess] = useState(false);
+  const [planChangeVal, setPlanChangeVal] = useState<string>("");
+  const [planChangeNote, setPlanChangeNote] = useState("");
+  const [planChanging, setPlanChanging] = useState(false);
+  const [planChangeSuccess, setPlanChangeSuccess] = useState(false);
+  const [planChangeError, setPlanChangeError] = useState<string|null>(null);
   const token = sessionStorage.getItem("admin_token") || "";
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
@@ -145,6 +150,7 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
       .then((d) => {
         setApp(d);
         setStatusVal(d.status ?? "pending");
+        setPlanChangeVal(d.plan_code ?? "");
         setChecks(d.verification_checks ?? []);
         setNotes(d.admin_notes ?? []);
         if (d.businesses?.via_number) setViaInput(d.businesses.via_number);
@@ -305,6 +311,38 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
     }
   };
 
+  const changePlan = async () => {
+    if (!app) return;
+    setPlanChanging(true);
+    setPlanChangeError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/api/admin/applications/${app.id}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          plan_code: planChangeVal || null,
+          plan_change_note: planChangeNote.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Failed to change plan");
+      }
+      setApp((a) => a ? { ...a, plan_code: planChangeVal || null } : a);
+      const auditNote = planChangeNote.trim()
+        ? `Plan changed: ${app.plan_code ?? "unassigned"} → ${planChangeVal || "unassigned"}. Notes: ${planChangeNote.trim()}`
+        : `Plan changed: ${app.plan_code ?? "unassigned"} → ${planChangeVal || "unassigned"}.`;
+      setNotes((prev) => [...prev, { id: `local-${Date.now()}`, body: auditNote, created_at: new Date().toISOString() }]);
+      setPlanChangeNote("");
+      setPlanChangeSuccess(true);
+      setTimeout(() => setPlanChangeSuccess(false), 3000);
+    } catch (e: any) {
+      setPlanChangeError(e.message || "Failed to change plan");
+    } finally {
+      setPlanChanging(false);
+    }
+  };
+
   const markAsPaid = async () => {
     if (!app) return;
     setMarkingPaid(true);
@@ -373,6 +411,20 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
               <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${STATUS_STYLE[app.status] ?? STATUS_STYLE.expired}`}>
                 {STATUS_LABELS[app.status] ?? app.status}
               </span>
+              {app.plan_code && (
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
+                  app.plan_code === "tvc_plus"
+                    ? "bg-primary/10 text-primary border-primary/30"
+                    : "bg-sky-500/10 text-sky-400 border-sky-500/30"
+                }`}>
+                  {app.plan_code === "tvc_plus" ? "TVC Plus" : "TVC Basic"}
+                </span>
+              )}
+              {!app.plan_code && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full border bg-muted text-muted-foreground border-border">
+                  Legacy — Unassigned
+                </span>
+              )}
               {biz?.via_number && (
                 <span className="text-sm font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-lg">
                   {biz.via_number}
@@ -678,6 +730,49 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
                 >
                   <UserCheck className="w-3.5 h-3.5 mr-1" />
                   {viaAssigning ? "Saving…" : "Assign"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Change Plan */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-1">Membership Plan</h2>
+              <p className="text-xs text-muted-foreground mb-4">Changing the plan is logged in Internal Notes.</p>
+              {planChangeError && (
+                <div className="bg-destructive/10 border border-destructive/30 text-destructive text-xs rounded-lg px-3 py-2 mb-3">
+                  {planChangeError}
+                </div>
+              )}
+              {planChangeSuccess && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded-lg px-3 py-2 mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Plan updated and logged.
+                </div>
+              )}
+              <div className="space-y-3">
+                <Select value={planChangeVal} onValueChange={setPlanChangeVal}>
+                  <SelectTrigger><SelectValue placeholder="Legacy — Unassigned" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Legacy — Unassigned</SelectItem>
+                    <SelectItem value="tvc_basic">TVC Basic (£15/month)</SelectItem>
+                    <SelectItem value="tvc_plus">TVC Plus (£30/month)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <input
+                  type="text"
+                  value={planChangeNote}
+                  onChange={(e) => setPlanChangeNote(e.target.value)}
+                  placeholder="Reason for change (optional)"
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <Button
+                  size="sm"
+                  onClick={changePlan}
+                  disabled={planChanging || planChangeVal === (app.plan_code ?? "")}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {planChanging ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                  {planChanging ? "Saving…" : "Update Plan"}
                 </Button>
               </div>
             </div>
