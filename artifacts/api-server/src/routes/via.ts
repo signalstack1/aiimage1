@@ -54,16 +54,16 @@ router.get("/via/verify/:viaNumber", async (req, res) => {
   }
 
   try {
+    // Query without approved-only filter so we can return "inactive" for non-approved/disabled businesses
     const { data: business, error: bErr } = await supabase
       .from("businesses")
       .select(`
         id, via_number, business_name, trade_type, location,
         website, contact_phone, contact_enabled, business_intro,
-        applications!inner(status, updated_at, plan_code),
+        applications(status, updated_at, plan_code),
         verification_checks(check_type, status, checked_at)
       `)
       .eq("via_number", normalized)
-      .eq("applications.status", "approved")
       .single();
 
     if (bErr || !business) return res.status(404).json({ error: "Not found" });
@@ -73,9 +73,15 @@ router.get("/via/verify/:viaNumber", async (req, res) => {
       return ok(res, { status: "inactive", via_number: business.via_number });
     }
 
-    const app = (business as any).applications?.[0];
+    // Step 5: no approved application → neutral inactive response (pending/rejected/expired/cancelled)
+    const apps: Array<{ status: string; updated_at: string; plan_code: string | null }> = (business as any).applications ?? [];
+    const app = apps.find(a => a.status === "approved") ?? null;
+    if (!app) {
+      return ok(res, { status: "inactive", via_number: business.via_number });
+    }
+
     // Legacy (null plan_code) → basic tier. Only tvc_plus → plus tier.
-    const planCode: string | null = app?.plan_code ?? null;
+    const planCode: string | null = app.plan_code ?? null;
     const isPlus = planCode === "tvc_plus";
     const bizId = (business as any).id;
 

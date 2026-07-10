@@ -101,13 +101,13 @@ export default async function handler(req: any, res: any) {
     if (g0 === "via" && g1 === "verify" && g2 && method === "GET") {
       const normalized = g2.trim().toUpperCase();
       if (!configured) { fail(res, "Not found", 404); return; }
+      // Query without approved-only filter so we can return "inactive" for non-approved/disabled businesses
       const { data: business, error: bErr } = await supabase
         .from("businesses")
         .select(`id,via_number,business_name,trade_type,location,website,contact_phone,contact_enabled,business_intro,
-          applications!inner(status,updated_at,plan_code),
+          applications(status,updated_at,plan_code),
           verification_checks(check_type,status,checked_at)`)
         .eq("via_number", normalized)
-        .eq("applications.status", "approved")
         .single();
       if (bErr || !business) { fail(res, "Not found", 404); return; }
 
@@ -117,9 +117,16 @@ export default async function handler(req: any, res: any) {
         return;
       }
 
-      const app = (business as any).applications?.[0];
+      // Step 5: no approved application → neutral inactive response (pending/rejected/expired/cancelled)
+      const apps: Array<{ status: string; updated_at: string; plan_code: string | null }> = (business as any).applications ?? [];
+      const app = apps.find(a => a.status === "approved") ?? null;
+      if (!app) {
+        ok(res, { status: "inactive", via_number: business.via_number });
+        return;
+      }
+
       // Legacy (null plan_code) → basic tier. Only tvc_plus → plus tier.
-      const planCode: string | null = app?.plan_code ?? null;
+      const planCode: string | null = app.plan_code ?? null;
       const isPlus = planCode === "tvc_plus";
       const bizId = (business as any).id;
 
@@ -257,8 +264,9 @@ export default async function handler(req: any, res: any) {
       if (!configured) { ok(res, { success: true }); return; }
       const { data: bizVia } = await supabase.from("businesses").select("id").eq("via_number", viaNumber).maybeSingle();
       if (!bizVia) { fail(res, "Business not found", 404); return; }
-      const { data: applVia } = await supabase.from("applications").select("plan_code").eq("business_id",(bizVia as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
-      if (!getPlanEntitlements((applVia as any)?.plan_code ?? null).testimonial_access) { fail(res, "This business does not accept testimonials.", 403); return; }
+      const { data: applVia } = await supabase.from("applications").select("plan_code,status").eq("business_id",(bizVia as any).id).eq("status","approved").order("created_at",{ascending:false}).limit(1).maybeSingle();
+      // Only tvc_plus gets testimonials; legacy/null and tvc_basic do not
+      if ((applVia as any)?.plan_code !== "tvc_plus") { fail(res, "This business does not accept testimonials.", 403); return; }
       // Spam guard: max 3 submissions per email per business in 30 days
       if (customer_email) {
         const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
