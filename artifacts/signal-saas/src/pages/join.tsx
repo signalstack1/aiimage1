@@ -603,6 +603,7 @@ function PublicNav() {
           <Link href="/join" className="hover:text-foreground transition-colors text-foreground font-medium">Join TVC</Link>
           <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
         </nav>
+        <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">Login</Link>
       </div>
     </header>
   );
