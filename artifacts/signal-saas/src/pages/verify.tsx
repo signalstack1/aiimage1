@@ -7,7 +7,8 @@ import { TVCLogo } from "@/components/TVCLogo";
 import {
   ShieldCheck, Search, CheckCircle2, XCircle, Clock,
   MapPin, Building2, Award, Globe, FileSearch, Phone,
-  ArrowLeft, AlertTriangle, MessageSquare, Send,
+  ArrowLeft, AlertTriangle, MessageSquare, Send, ExternalLink,
+  Image as ImageIcon, Star, Quote,
 } from "lucide-react";
 import { APP_CONFIG } from "@/config/app";
 
@@ -19,25 +20,63 @@ interface VerificationCheck {
   checked_at: string | null;
 }
 
+interface PortfolioImage {
+  id: string;
+  public_url: string;
+  description: string | null;
+  display_order: number;
+}
+
+interface SocialLink {
+  platform: string;
+  url: string;
+}
+
+interface PublicTestimonial {
+  id: string;
+  customer_name: string;
+  testimonial_text: string;
+  service_received: string | null;
+  work_date: string | null;
+  submitted_at: string;
+}
+
 interface PublicProfile {
   via_number: string;
   business_name: string;
   trade_type: string;
   location: string;
+  website: string | null;
   status: "approved" | "pending" | "rejected" | "expired";
   last_checked: string | null;
   contact_phone: string | null;
   contact_enabled: boolean;
   checks: VerificationCheck[];
+  plan_tier: "basic" | "plus";
+  // Plus only:
+  business_intro?: string | null;
+  portfolio?: PortfolioImage[];
+  social_links?: SocialLink[];
+  testimonials?: PublicTestimonial[];
 }
 
 const CHECK_LABELS: Record<string, { label: string; icon: React.ElementType }> = {
-  local_address:   { label: "Local Address",              icon: MapPin },
-  business_type:   { label: "Business Type",              icon: Building2 },
-  insurance:       { label: "Public Liability Insurance", icon: ShieldCheck },
-  accreditations:  { label: "Trade Accreditations",       icon: Award },
-  digital_footprint: { label: "Digital Footprint",        icon: Globe },
-  public_records:  { label: "Contact & Public Records",   icon: FileSearch },
+  local_address:     { label: "Local Address",              icon: MapPin },
+  business_type:     { label: "Business Type",              icon: Building2 },
+  insurance:         { label: "Public Liability Insurance", icon: ShieldCheck },
+  accreditations:    { label: "Trade Accreditations",       icon: Award },
+  digital_footprint: { label: "Digital Footprint",          icon: Globe },
+  public_records:    { label: "Contact & Public Records",   icon: FileSearch },
+};
+
+const PLATFORM_LABELS: Record<string, string> = {
+  facebook:  "Facebook",
+  instagram: "Instagram",
+  linkedin:  "LinkedIn",
+  tiktok:    "TikTok",
+  youtube:   "YouTube",
+  x:         "X (Twitter)",
+  other:     "Website",
 };
 
 async function fetchProfile(viaNumber: string): Promise<PublicProfile | null> {
@@ -53,10 +92,10 @@ async function fetchProfile(viaNumber: string): Promise<PublicProfile | null> {
 
 function StatusBadge({ status }: { status: PublicProfile["status"] }) {
   const map = {
-    approved: { label: "TVC Verified", class: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+    approved: { label: "TVC Verified",   class: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
     pending:  { label: "Pending Review", class: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-    rejected: { label: "Not Verified", class: "bg-red-500/15 text-red-400 border-red-500/30" },
-    expired:  { label: "Expired", class: "bg-muted text-muted-foreground border-border" },
+    rejected: { label: "Not Verified",   class: "bg-red-500/15 text-red-400 border-red-500/30" },
+    expired:  { label: "Expired",        class: "bg-muted text-muted-foreground border-border" },
   };
   const s = map[status] ?? map.pending;
   return <Badge className={`border ${s.class} text-xs font-semibold px-3 py-1`}>{s.label}</Badge>;
@@ -75,9 +114,9 @@ function CheckRow({ checkType, status }: { checkType: string; status: Verificati
         <span className="text-sm font-medium">{meta.label}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        {status === "verified" && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-        {status === "unverified" && <XCircle className="w-4 h-4 text-red-400" />}
-        {status === "pending" && <Clock className="w-4 h-4 text-amber-400" />}
+        {status === "verified"   && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+        {status === "unverified" && <XCircle      className="w-4 h-4 text-red-400" />}
+        {status === "pending"    && <Clock        className="w-4 h-4 text-amber-400" />}
         <span className={`text-xs font-semibold ${status === "verified" ? "text-emerald-400" : status === "unverified" ? "text-red-400" : "text-amber-400"}`}>
           {status === "verified" ? "Verified" : status === "unverified" ? "Not verified" : "Pending"}
         </span>
@@ -86,7 +125,123 @@ function CheckRow({ checkType, status }: { checkType: string; status: Verificati
   );
 }
 
-// ── Testimonial submission form (shown on approved profiles) ───────────────────
+// ── Plus sections ──────────────────────────────────────────────────────────────
+
+function BusinessIntroSection({ intro }: { intro: string }) {
+  return (
+    <div className="bg-card border border-border rounded-2xl p-6 mb-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Quote className="w-4 h-4 text-primary shrink-0" />
+        <h3 className="font-bold text-sm">About this business</h3>
+      </div>
+      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{intro}</p>
+    </div>
+  );
+}
+
+function PortfolioSection({ images }: { images: PortfolioImage[] }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  if (images.length === 0) return null;
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-6 mb-4">
+      <div className="flex items-center gap-2 mb-4">
+        <ImageIcon className="w-4 h-4 text-primary shrink-0" />
+        <h3 className="font-bold text-sm">Work portfolio</h3>
+        <span className="text-xs text-muted-foreground ml-auto">{images.length} photo{images.length !== 1 ? "s" : ""}</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {images.map((img) => (
+          <button
+            key={img.id}
+            className="group relative rounded-xl overflow-hidden border border-border bg-muted aspect-square text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
+            onClick={() => setExpanded(expanded === img.id ? null : img.id)}
+          >
+            <img
+              src={img.public_url}
+              alt={img.description || "Portfolio image"}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            {img.description && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-2">
+                <p className="text-[10px] text-white/90 leading-snug line-clamp-2">{img.description}</p>
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+      {expanded && (() => {
+        const img = images.find(i => i.id === expanded);
+        if (!img) return null;
+        return (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setExpanded(null)}>
+            <div className="max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+              <img src={img.public_url} alt={img.description || "Portfolio image"} className="w-full rounded-xl max-h-[70vh] object-contain" />
+              {img.description && <p className="text-white/80 text-sm mt-3 text-center">{img.description}</p>}
+              <button onClick={() => setExpanded(null)} className="mt-4 block mx-auto text-white/60 text-xs hover:text-white">Close</button>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function SocialLinksSection({ links }: { links: SocialLink[] }) {
+  if (links.length === 0) return null;
+  return (
+    <div className="bg-card border border-border rounded-2xl p-6 mb-4">
+      <h3 className="font-bold text-sm mb-3">Connect online</h3>
+      <div className="flex flex-wrap gap-2">
+        {links.map((link) => (
+          <a
+            key={link.platform}
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border text-sm font-medium hover:bg-accent transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+            {PLATFORM_LABELS[link.platform] ?? link.platform}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TestimonialsSection({ testimonials }: { testimonials: PublicTestimonial[] }) {
+  if (testimonials.length === 0) return null;
+  return (
+    <div className="bg-card border border-border rounded-2xl p-6 mb-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Star className="w-4 h-4 text-primary shrink-0" />
+        <h3 className="font-bold text-sm">Customer testimonials</h3>
+        <span className="text-xs text-muted-foreground ml-auto">{testimonials.length} review{testimonials.length !== 1 ? "s" : ""}</span>
+      </div>
+      <div className="space-y-4">
+        {testimonials.map((t) => (
+          <div key={t.id} className="border border-border rounded-xl p-4">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <p className="font-semibold text-sm">{t.customer_name}</p>
+              {t.work_date && (
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {new Date(t.work_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
+                </span>
+              )}
+            </div>
+            {t.service_received && (
+              <p className="text-xs text-muted-foreground mb-2">{t.service_received}</p>
+            )}
+            <p className="text-sm text-muted-foreground leading-relaxed">{t.testimonial_text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Testimonial submission form (Plus members only) ────────────────────────────
 function TestimonialForm({ viaNumber }: { viaNumber: string }) {
   const [name, setName]         = useState("");
   const [text, setText]         = useState("");
@@ -94,7 +249,7 @@ function TestimonialForm({ viaNumber }: { viaNumber: string }) {
   const [service, setService]   = useState("");
   const [workDate, setWorkDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [sent, setSent]       = useState(false);
+  const [sent, setSent]         = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -222,10 +377,12 @@ function TestimonialForm({ viaNumber }: { viaNumber: string }) {
   );
 }
 
+// ── Profile view ───────────────────────────────────────────────────────────────
 function ProfileView({ profile }: { profile: PublicProfile }) {
   const allChecks = Object.keys(CHECK_LABELS);
   const checkMap: Record<string, VerificationCheck["status"]> = {};
   for (const c of profile.checks) checkMap[c.check_type] = c.status;
+  const isPlus = profile.plan_tier === "plus";
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -241,7 +398,12 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
               <p className="text-2xl font-extrabold tracking-tight">{profile.via_number}</p>
             </div>
           </div>
-          <StatusBadge status={profile.status} />
+          <div className="flex flex-col items-end gap-1.5">
+            <StatusBadge status={profile.status} />
+            {isPlus && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">TVC Plus</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -281,11 +443,33 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
               </div>
             </div>
           )}
+          {profile.website && (
+            <div className="flex items-center gap-2.5 text-sm">
+              <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Website</p>
+                <a href={profile.website} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline inline-flex items-center gap-1">
+                  {profile.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Plus: Business intro */}
+      {isPlus && profile.business_intro && (
+        <BusinessIntroSection intro={profile.business_intro} />
+      )}
+
+      {/* Plus: Social links */}
+      {isPlus && profile.social_links && profile.social_links.length > 0 && (
+        <SocialLinksSection links={profile.social_links} />
+      )}
+
       {/* Verification checks */}
-      <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+      <div className="bg-card border border-border rounded-2xl p-6 mb-4">
         <h3 className="font-bold mb-1">Verification checks</h3>
         <p className="text-xs text-muted-foreground mb-4">Each item is independently verified by TVC before being marked as confirmed.</p>
         <div>
@@ -299,8 +483,18 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
         </div>
       </div>
 
-      {/* Testimonial submission — approved profiles only */}
-      {profile.status === "approved" && (
+      {/* Plus: Portfolio */}
+      {isPlus && profile.portfolio && profile.portfolio.length > 0 && (
+        <PortfolioSection images={profile.portfolio} />
+      )}
+
+      {/* Plus: Approved testimonials */}
+      {isPlus && profile.testimonials && profile.testimonials.length > 0 && (
+        <TestimonialsSection testimonials={profile.testimonials} />
+      )}
+
+      {/* Testimonial submission — Plus members only */}
+      {isPlus && profile.status === "approved" && (
         <div className="mb-6">
           <TestimonialForm viaNumber={profile.via_number} />
         </div>
@@ -455,7 +649,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <Link href="/verify" className="hover:text-foreground transition-colors text-foreground font-medium">Check a TVC Number</Link>
-            <Link href="/join" className="hover:text-foreground transition-colors">Join TVC</Link>
+            <Link href="/join"   className="hover:text-foreground transition-colors">Join TVC</Link>
             <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
           </nav>
         </div>
@@ -468,8 +662,8 @@ function PageShell({ children }: { children: React.ReactNode }) {
           <span className="font-semibold text-foreground">Approved</span>
           <div className="flex items-center gap-6">
             <Link href="/disclaimer" className="hover:text-foreground">Disclaimer</Link>
-            <Link href="/terms" className="hover:text-foreground">Terms</Link>
-            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+            <Link href="/terms"      className="hover:text-foreground">Terms</Link>
+            <Link href="/privacy"    className="hover:text-foreground">Privacy</Link>
           </div>
           <p>© {new Date().getFullYear()} {APP_CONFIG.legalName}</p>
         </div>

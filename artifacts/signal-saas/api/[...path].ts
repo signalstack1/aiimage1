@@ -103,24 +103,59 @@ export default async function handler(req: any, res: any) {
       if (!configured) { fail(res, "Not found", 404); return; }
       const { data: business, error: bErr } = await supabase
         .from("businesses")
-        .select(`via_number,business_name,trade_type,location,contact_phone,contact_enabled,
-          applications!inner(status,updated_at),
+        .select(`id,via_number,business_name,trade_type,location,website,contact_phone,contact_enabled,business_intro,
+          applications!inner(status,updated_at,plan_code),
           verification_checks(check_type,status,checked_at)`)
         .eq("via_number", normalized)
         .eq("applications.status", "approved")
         .single();
       if (bErr || !business) { fail(res, "Not found", 404); return; }
       const app = (business as any).applications?.[0];
-      ok(res, {
+      const planCode: string | null = app?.plan_code ?? null;
+      const isPlus = getPlanEntitlements(planCode).enhanced_profile;
+      const bizId = (business as any).id;
+
+      const base = {
         via_number: business.via_number,
         business_name: business.business_name,
         trade_type: business.trade_type,
         location: business.location,
-        status: "approved",
+        website: (business as any).website ?? null,
+        status: "approved" as const,
         last_checked: app?.updated_at ?? null,
         contact_phone: business.contact_phone,
         contact_enabled: business.contact_enabled ?? false,
         checks: (business as any).verification_checks ?? [],
+        plan_tier: isPlus ? "plus" : "basic",
+      };
+
+      if (!isPlus) { ok(res, base); return; }
+
+      // Plus: fetch enhanced profile data in parallel
+      const [portfolioRes, socialRes, testimonialRes] = await Promise.all([
+        supabase.from("portfolio_images")
+          .select("id,public_url,description,display_order")
+          .eq("business_id", bizId)
+          .not("public_url", "is", null)
+          .order("display_order", { ascending: true })
+          .limit(30),
+        supabase.from("social_links")
+          .select("platform,url")
+          .eq("business_id", bizId),
+        supabase.from("testimonials")
+          .select("id,customer_name,testimonial_text,service_received,work_date,submitted_at")
+          .eq("business_id", bizId)
+          .eq("approval_status", "approved")
+          .order("submitted_at", { ascending: false })
+          .limit(20),
+      ]);
+
+      ok(res, {
+        ...base,
+        business_intro: (business as any).business_intro ?? null,
+        portfolio: portfolioRes.data ?? [],
+        social_links: socialRes.data ?? [],
+        testimonials: testimonialRes.data ?? [],
       });
       return;
     }
