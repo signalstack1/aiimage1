@@ -78,9 +78,11 @@ export default function HomePage() {
       {/* Navbar */}
       <header className="fixed top-0 inset-x-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <TVCLogo size={109} />
-            <span className="font-bold text-lg tracking-tight">Approved</span>
+          <div className="flex flex-col items-start justify-center">
+            <TVCLogo size={44} />
+            <span className="text-[10px] font-semibold tracking-wide leading-none mt-0.5 whitespace-nowrap">
+              Trades <span className="text-emerald-400">|</span> Verified <span className="text-emerald-400">|</span> Checked
+            </span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <Link href="/verify" className="hover:text-foreground transition-colors">Check a TVC Number</Link>
