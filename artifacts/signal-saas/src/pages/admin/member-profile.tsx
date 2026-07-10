@@ -11,6 +11,7 @@ import {
 import {
   ArrowLeft, Shield, ShieldCheck, ShieldX, Phone, Mail, Globe,
   MapPin, FileText, ExternalLink, Download, Link2, CheckCircle2, AlertTriangle, RefreshCw,
+  Image, Trash2, MessageSquare, ThumbsUp, ThumbsDown,
 } from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "";
@@ -55,6 +56,14 @@ interface Profile {
   verification_checks: Array<{ check_type: string; passed: boolean }>;
 }
 
+interface PortfolioImage { id: string; public_url: string | null; description: string | null; upload_month: string; created_at: string; }
+interface AdminTestimonial {
+  id: string; customer_name: string; testimonial_text: string; customer_email: string | null;
+  service_received: string | null; work_date: string | null;
+  approval_status: "pending" | "approved" | "rejected"; moderation_notes: string | null;
+  submitted_at: string; reviewed_at: string | null;
+}
+
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -76,6 +85,12 @@ export default function MemberProfilePage() {
   const [planChangeConfirm, setPlanChangeConfirm] = useState(false);
   const [planChangeSuccess, setPlanChangeSuccess] = useState(false);
   const [planChangeError, setPlanChangeError]   = useState<string | null>(null);
+
+  const [portfolio, setPortfolio]               = useState<PortfolioImage[]>([]);
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [testimonials, setTestimonials]         = useState<AdminTestimonial[]>([]);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(false);
+  const [updatingTestimonial, setUpdatingTestimonial] = useState<string | null>(null);
 
   const token = sessionStorage.getItem("admin_token") || "";
   const headers = { Authorization: `Bearer ${token}` };
@@ -164,6 +179,47 @@ export default function MemberProfilePage() {
   const checkMap = Object.fromEntries(
     (profile?.verification_checks ?? []).map((c) => [c.check_type, c.passed])
   );
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    if (profile.application?.plan_code === "tvc_plus") {
+      setPortfolioLoading(true);
+      fetch(`${BASE_URL}/api/admin/portfolio?business_id=${profile.id}`, { headers })
+        .then(r => r.json())
+        .then((d: any) => setPortfolio(Array.isArray(d) ? d : (d.images ?? [])))
+        .catch(() => {})
+        .finally(() => setPortfolioLoading(false));
+    }
+    setTestimonialsLoading(true);
+    fetch(`${BASE_URL}/api/admin/testimonials?business_id=${profile.id}`, { headers })
+      .then(r => r.json())
+      .then((d: any) => setTestimonials(Array.isArray(d) ? d : []))
+      .catch(() => {})
+      .finally(() => setTestimonialsLoading(false));
+  }, [profile?.id]);
+
+  const deletePortfolioImage = async (imgId: string) => {
+    if (!window.confirm("Permanently remove this portfolio image? This cannot be undone.")) return;
+    await fetch(`${BASE_URL}/api/admin/portfolio-images/${imgId}`, { method: "DELETE", headers });
+    setPortfolio(prev => prev.filter(i => i.id !== imgId));
+  };
+
+  const updateTestimonial = async (id: string, approval_status: string) => {
+    setUpdatingTestimonial(id);
+    try {
+      const r = await fetch(`${BASE_URL}/api/admin/testimonials/${id}`, { method: "PATCH", headers: jsonHeaders, body: JSON.stringify({ approval_status }) });
+      if (r.ok) { const updated = await r.json(); setTestimonials(prev => prev.map(t => t.id === id ? updated : t)); }
+    } finally { setUpdatingTestimonial(null); }
+  };
+
+  const removeTestimonial = async (id: string) => {
+    if (!window.confirm("Permanently delete this testimonial? This cannot be undone.")) return;
+    setUpdatingTestimonial(id);
+    try {
+      await fetch(`${BASE_URL}/api/admin/testimonials/${id}`, { method: "DELETE", headers });
+      setTestimonials(prev => prev.filter(t => t.id !== id));
+    } finally { setUpdatingTestimonial(null); }
+  };
 
   return (
     <AdminLayout>
@@ -387,6 +443,93 @@ export default function MemberProfilePage() {
                 </div>
               </div>
             )}
+
+            {/* Portfolio — TVC Plus members only */}
+            {profile.application?.plan_code === "tvc_plus" && (
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h2 className="font-semibold text-sm mb-1 flex items-center gap-2">
+                  <Image className="w-4 h-4 text-primary" /> Portfolio Images
+                </h2>
+                <p className="text-xs text-muted-foreground mb-4">
+                  {portfolio.filter(i => i.upload_month === new Date().toISOString().slice(0,7)).length} of 20 uploads used this month
+                  {" · "}{portfolio.filter(i => i.public_url).length} active image{portfolio.filter(i => i.public_url).length !== 1 ? "s" : ""}
+                </p>
+                {portfolioLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading…</p>
+                ) : portfolio.filter(i => i.public_url).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No active portfolio images.</p>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {portfolio.filter(i => i.public_url).map((img) => (
+                      <div key={img.id} className="relative group rounded-lg overflow-hidden bg-muted aspect-square">
+                        <img src={img.public_url!} alt="" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => deletePortfolioImage(img.id)}
+                          className="absolute top-1 right-1 bg-black/60 hover:bg-red-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                          title="Remove image"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Testimonials */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h2 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" /> Testimonials
+                {testimonials.length > 0 && (
+                  <span className="ml-auto text-xs text-muted-foreground font-normal">{testimonials.length} total</span>
+                )}
+              </h2>
+              {testimonialsLoading ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : testimonials.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No testimonials yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {testimonials.map((t) => (
+                    <div key={t.id} className="border border-border rounded-lg p-4">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{t.customer_name}</p>
+                          {t.customer_email && <p className="text-xs text-muted-foreground truncate">{t.customer_email}</p>}
+                          {t.service_received && (
+                            <p className="text-xs text-muted-foreground">
+                              {t.service_received}{t.work_date ? ` · ${fmtDate(t.work_date)}` : ""}
+                            </p>
+                          )}
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${STATUS_STYLE[t.approval_status] ?? ""}`}>
+                          {t.approval_status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-3">"{t.testimonial_text}"</p>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button size="sm" variant="outline" className="h-7 text-xs"
+                          disabled={updatingTestimonial === t.id || t.approval_status === "approved"}
+                          onClick={() => updateTestimonial(t.id, "approved")}>
+                          <ThumbsUp className="w-3 h-3 mr-1" /> Approve
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs"
+                          disabled={updatingTestimonial === t.id || t.approval_status === "rejected"}
+                          onClick={() => updateTestimonial(t.id, "rejected")}>
+                          <ThumbsDown className="w-3 h-3 mr-1" /> Reject
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive ml-auto"
+                          disabled={updatingTestimonial === t.id}
+                          onClick={() => removeTestimonial(t.id)}>
+                          <Trash2 className="w-3 h-3 mr-1" /> Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Auth status + link-user */}
             <div className="bg-card border border-border rounded-xl p-5">

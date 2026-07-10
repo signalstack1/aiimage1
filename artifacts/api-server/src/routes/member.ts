@@ -621,6 +621,10 @@ router.post("/member/portfolio/upload", requireMember, async (req: AuthedRequest
 
     await ensurePortfolioBucket();
 
+    // Validate MIME type before upload
+    const ALLOWED_MIME = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!ALLOWED_MIME.includes(String(mime_type))) return err(res, "Only JPEG, PNG, and WebP images are allowed.", 400);
+
     // Strip DataURL prefix if present (data:image/jpeg;base64,...)
     const raw = String(file_data);
     const base64Data = raw.includes(",") ? raw.split(",")[1] : raw;
@@ -780,6 +784,12 @@ router.patch("/member/testimonials/:id", requireMember, async (req: AuthedReques
   try {
     const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
     if (!biz) return err(res, "Business not found", 404);
+
+    // Entitlement check — testimonial management is Plus only
+    const { data: tAppl } = await supabase.from("applications").select("plan_code").eq("business_id", biz.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!getPlanEntitlements((tAppl as any)?.plan_code ?? null).testimonial_access) {
+      return err(res, "Testimonial management is a TVC Plus feature.", 403);
+    }
 
     const { customer_name, testimonial_text, customer_email, service_received, work_date, approval_status } = req.body || {};
     const VALID_STATUS = ["pending", "approved", "rejected"];

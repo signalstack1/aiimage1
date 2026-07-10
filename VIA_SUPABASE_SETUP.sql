@@ -457,7 +457,7 @@ CREATE POLICY "member_own" ON portfolio_images FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM businesses b WHERE b.id = portfolio_images.business_id AND b.user_id = auth.uid()))
   WITH CHECK (EXISTS (SELECT 1 FROM businesses b WHERE b.id = portfolio_images.business_id AND b.user_id = auth.uid()));
 DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "public_read" ON portfolio_images'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
-CREATE POLICY "public_read" ON portfolio_images FOR SELECT TO anon USING (TRUE);
+CREATE POLICY "public_read" ON portfolio_images FOR SELECT TO anon USING (public_url IS NOT NULL);
 
 -- ── social_links ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS social_links (
@@ -503,10 +503,16 @@ CREATE POLICY "service_role_all" ON testimonials FOR ALL TO service_role USING (
 DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "member_own" ON testimonials'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
 CREATE POLICY "member_own" ON testimonials FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM businesses b WHERE b.id = testimonials.business_id AND b.user_id = auth.uid()));
+-- Anon SELECT/INSERT removed from testimonials table — all public access goes through
+-- our API (service_role) which controls column exposure (customer_email never exposed publicly).
 DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "public_read_approved" ON testimonials'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
-CREATE POLICY "public_read_approved" ON testimonials FOR SELECT TO anon USING (approval_status = 'approved');
 DO $$ BEGIN EXECUTE 'DROP POLICY IF EXISTS "public_insert" ON testimonials'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
-CREATE POLICY "public_insert" ON testimonials FOR INSERT TO anon WITH CHECK (TRUE);
+
+-- Safe read-only view for any direct PostgREST access: excludes PII (customer_email)
+CREATE OR REPLACE VIEW public_testimonials AS
+  SELECT id, business_id, customer_name, testimonial_text, service_received, work_date, approval_status, submitted_at
+  FROM testimonials WHERE approval_status = 'approved';
+GRANT SELECT ON public_testimonials TO anon;
 
 -- ── Storage: portfolio-images bucket (public) ─────────────────────────────────
 -- If this fails, create the bucket manually in Supabase Dashboard → Storage

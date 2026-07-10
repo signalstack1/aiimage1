@@ -5,9 +5,54 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { logger } from "../lib/logger";
+import { getPlanEntitlements } from "../lib/plan-entitlements";
 
 const router = Router();
 const DOC_BUCKET = "member-documents";
+
+// =============================================================================
+// POST /api/via/testimonials/:viaNumber — public testimonial submission (no auth)
+// Spam guards: max 3 per email per business in 30 days; max 20 per business per day
+// =============================================================================
+router.post("/via/testimonials/:viaNumber", async (req, res) => {
+  const viaNumber = String(req.params.viaNumber).toUpperCase();
+  const { customer_name, testimonial_text, customer_email, service_received, work_date } = req.body || {};
+  if (!customer_name || !testimonial_text) return err(res, "customer_name and testimonial_text are required", 400);
+  if (String(customer_name).trim().length > 100) return err(res, "Name must be 100 characters or less", 400);
+  if (String(testimonial_text).trim().length > 2000) return err(res, "Testimonial must be 2,000 characters or less", 400);
+  if (!isSupabaseConfigured()) return ok(res, { success: true });
+
+  try {
+    const { data: biz } = await supabase.from("businesses").select("id").eq("via_number", viaNumber).maybeSingle();
+    if (!biz) return err(res, "Business not found", 404);
+    const { data: appl } = await supabase.from("applications").select("plan_code").eq("business_id", (biz as any).id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!getPlanEntitlements((appl as any)?.plan_code ?? null).testimonial_access) return err(res, "This business does not accept testimonials.", 403);
+
+    if (customer_email) {
+      const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { count: emailCount } = await supabase.from("testimonials").select("id", { count: "exact", head: true }).eq("business_id", (biz as any).id).eq("customer_email", String(customer_email).toLowerCase().slice(0, 200)).gte("submitted_at", since30d);
+      if ((emailCount ?? 0) >= 3) return err(res, "You have already submitted too many testimonials for this business recently.", 429);
+    }
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: dailyCount } = await supabase.from("testimonials").select("id", { count: "exact", head: true }).eq("business_id", (biz as any).id).gte("submitted_at", since24h);
+    if ((dailyCount ?? 0) >= 20) return err(res, "Too many testimonials submitted today. Please try again later.", 429);
+
+    const { error: insErr } = await supabase.from("testimonials").insert({
+      business_id: (biz as any).id,
+      customer_name: String(customer_name).trim().slice(0, 100),
+      testimonial_text: String(testimonial_text).trim().slice(0, 2000),
+      customer_email: customer_email ? String(customer_email).toLowerCase().slice(0, 200) : null,
+      service_received: service_received ? String(service_received).slice(0, 200) : null,
+      work_date: work_date || null,
+      approval_status: "pending",
+    });
+    if (insErr) throw insErr;
+    return ok(res, { success: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "POST /via/testimonials error");
+    return err(res, e.message);
+  }
+});
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 const ADMIN_PASSWORD    = process.env.ADMIN_PASSWORD || "admin";
@@ -880,6 +925,20 @@ router.patch("/admin/testimonials/:id", requireAdmin, async (req, res) => {
       .single();
     if (error) return err(res, error.message);
     return ok(res, data);
+  } catch (e: any) {
+    return err(res, e.message);
+  }
+});
+
+// =============================================================================
+// DELETE /api/admin/testimonials/:id — permanently remove a testimonial
+// =============================================================================
+router.delete("/admin/testimonials/:id", requireAdmin, async (req, res) => {
+  if (!isSupabaseConfigured()) return ok(res, { deleted: true });
+  try {
+    const { error } = await supabase.from("testimonials").delete().eq("id", req.params.id);
+    if (error) return err(res, error.message);
+    return ok(res, { deleted: true });
   } catch (e: any) {
     return err(res, e.message);
   }

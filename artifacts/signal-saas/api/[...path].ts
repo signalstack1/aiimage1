@@ -204,6 +204,42 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
+    // POST /api/via/testimonials/:viaNumber — public testimonial submission (no auth, spam-guarded)
+    if (g0 === "via" && g1 === "testimonials" && g2 && method === "POST") {
+      const viaNumber = String(g2).toUpperCase();
+      const { customer_name, testimonial_text, customer_email, service_received, work_date } = req.body ?? {};
+      if (!customer_name || !testimonial_text) { fail(res, "customer_name and testimonial_text are required", 400); return; }
+      if (String(customer_name).trim().length > 100) { fail(res, "Name must be 100 characters or less", 400); return; }
+      if (String(testimonial_text).trim().length > 2000) { fail(res, "Testimonial must be 2,000 characters or less", 400); return; }
+      if (!configured) { ok(res, { success: true }); return; }
+      const { data: bizVia } = await supabase.from("businesses").select("id").eq("via_number", viaNumber).maybeSingle();
+      if (!bizVia) { fail(res, "Business not found", 404); return; }
+      const { data: applVia } = await supabase.from("applications").select("plan_code").eq("business_id",(bizVia as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+      if (!getPlanEntitlements((applVia as any)?.plan_code ?? null).testimonial_access) { fail(res, "This business does not accept testimonials.", 403); return; }
+      // Spam guard: max 3 submissions per email per business in 30 days
+      if (customer_email) {
+        const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { count: emailCount } = await supabase.from("testimonials").select("id",{count:"exact",head:true}).eq("business_id",(bizVia as any).id).eq("customer_email",String(customer_email).toLowerCase().slice(0,200)).gte("submitted_at",since30d);
+        if ((emailCount ?? 0) >= 3) { fail(res, "You have already submitted too many testimonials for this business recently. Please try again later.", 429); return; }
+      }
+      // Spam guard: max 20 submissions per business per day
+      const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count: dailyCount } = await supabase.from("testimonials").select("id",{count:"exact",head:true}).eq("business_id",(bizVia as any).id).gte("submitted_at",since24h);
+      if ((dailyCount ?? 0) >= 20) { fail(res, "Too many testimonials submitted for this business today. Please try again later.", 429); return; }
+      const { error: insErr } = await supabase.from("testimonials").insert({
+        business_id: (bizVia as any).id,
+        customer_name: String(customer_name).trim().slice(0, 100),
+        testimonial_text: String(testimonial_text).trim().slice(0, 2000),
+        customer_email: customer_email ? String(customer_email).toLowerCase().slice(0, 200) : null,
+        service_received: service_received ? String(service_received).slice(0, 200) : null,
+        work_date: work_date || null,
+        approval_status: "pending",
+      });
+      if (insErr) throw insErr;
+      ok(res, { success: true });
+      return;
+    }
+
     // POST /api/via/applications/:id/documents
     if (g0 === "via" && g1 === "applications" && g2 && g3 === "documents" && method === "POST") {
       const applicationId = g2;
@@ -675,6 +711,15 @@ export default async function handler(req: any, res: any) {
         return;
       }
 
+      // DELETE /api/admin/testimonials/:id — permanently remove a testimonial
+      if (g1 === "testimonials" && g2 && !g3 && method === "DELETE") {
+        if (!configured) { ok(res, { deleted: true }); return; }
+        const { error: delTErr } = await supabase.from("testimonials").delete().eq("id",g2);
+        if (delTErr) { fail(res, delTErr.message); return; }
+        ok(res, { deleted: true });
+        return;
+      }
+
       fail(res, "Admin route not found", 404);
       return;
     }
@@ -903,6 +948,8 @@ export default async function handler(req: any, res: any) {
       if (g1 === "portfolio" && g2 === "upload" && !g3 && method === "POST") {
         const { file_data, mime_type } = req.body ?? {};
         if (!file_data || !mime_type) { fail(res, "file_data and mime_type are required", 400); return; }
+        const ALLOWED_MIME_TYPES = ["image/jpeg","image/jpg","image/png","image/webp"];
+        if (!ALLOWED_MIME_TYPES.includes(String(mime_type))) { fail(res, "Only JPEG, PNG, and WebP images are allowed.", 400); return; }
         if (!configured) { ok(res, { id:`mock-img-${Date.now()}`, public_url:"https://placehold.co/600x400?text=Portfolio", description:null, upload_month:new Date().toISOString().slice(0,7), display_order:0, created_at:new Date().toISOString() }, 201); return; }
         const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
         if (!biz) { fail(res, "Business not found", 404); return; }
@@ -1007,6 +1054,8 @@ export default async function handler(req: any, res: any) {
         if (!configured) { ok(res, { id:g2, ...req.body }); return; }
         const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
         if (!biz) { fail(res, "Business not found", 404); return; }
+        const { data: tApplM } = await supabase.from("applications").select("plan_code").eq("business_id",(biz as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+        if (!getPlanEntitlements((tApplM as any)?.plan_code ?? null).testimonial_access) { fail(res, "Testimonial management is a TVC Plus feature.", 403); return; }
         const { customer_name, testimonial_text, customer_email, service_received, work_date, approval_status } = req.body ?? {};
         const VALID_STATUS = ["pending","approved","rejected"];
         const { data: tmData, error: tmErr } = await supabase.from("testimonials")

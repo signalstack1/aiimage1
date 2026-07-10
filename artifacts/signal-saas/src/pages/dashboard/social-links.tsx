@@ -16,6 +16,7 @@ const PLATFORMS = [
   { value: "tiktok",   label: "TikTok",      placeholder: "https://tiktok.com/@yourhandle" },
   { value: "youtube",  label: "YouTube",     placeholder: "https://youtube.com/@yourchannel" },
   { value: "x",        label: "X (Twitter)", placeholder: "https://x.com/yourhandle" },
+  { value: "other",    label: "Other",       placeholder: "https://example.com/yourbusiness" },
 ];
 
 interface SocialLink { platform: string; url: string; }
