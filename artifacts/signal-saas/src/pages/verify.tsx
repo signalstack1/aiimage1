@@ -305,8 +305,8 @@ function PageShell({ children }: { children: React.ReactNode }) {
       <header className="fixed top-0 inset-x-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 py-2 flex items-center justify-between">
           <Link href="/" className="flex flex-col items-center">
-            <TVCLogo size={109} />
-            <span className="text-[10px] font-semibold tracking-wide whitespace-nowrap mt-1">
+            <TVCLogo size={131} />
+            <span className="text-xs font-semibold tracking-wide whitespace-nowrap mt-1">
               Trades <span className="text-emerald-400">|</span> Verified <span className="text-emerald-400">|</span> Checked
             </span>
           </Link>
