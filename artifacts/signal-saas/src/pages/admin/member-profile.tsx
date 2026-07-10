@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowLeft, Shield, ShieldCheck, ShieldX, Phone, Mail, Globe,
-  MapPin, FileText, ExternalLink, Download, Link2, CheckCircle2, AlertTriangle,
+  MapPin, FileText, ExternalLink, Download, Link2, CheckCircle2, AlertTriangle, RefreshCw,
 } from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "";
@@ -47,7 +50,7 @@ interface Profile {
   description: string | null;
   via_number: string | null;
   user_id: string | null;
-  application: { id: string; status: string; applicant_email: string | null; created_at: string } | null;
+  application: { id: string; status: string; plan_code: string | null; applicant_email: string | null; created_at: string } | null;
   documents: Array<{ id: string; document_type: string; file_name: string; created_at: string }>;
   verification_checks: Array<{ check_type: string; passed: boolean }>;
 }
@@ -67,8 +70,15 @@ export default function MemberProfilePage() {
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkResult, setLinkResult]   = useState<{ ok: boolean; message: string } | null>(null);
 
+  const [planChangeVal, setPlanChangeVal]       = useState<string>("");
+  const [planChangeNote, setPlanChangeNote]     = useState("");
+  const [planChanging, setPlanChanging]         = useState(false);
+  const [planChangeSuccess, setPlanChangeSuccess] = useState(false);
+  const [planChangeError, setPlanChangeError]   = useState<string | null>(null);
+
   const token = sessionStorage.getItem("admin_token") || "";
   const headers = { Authorization: `Bearer ${token}` };
+  const jsonHeaders = { ...headers, "Content-Type": "application/json" };
 
   useEffect(() => {
     if (!id) return;
@@ -76,7 +86,10 @@ export default function MemberProfilePage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
-        else setProfile(d);
+        else {
+          setProfile(d);
+          setPlanChangeVal(d.application?.plan_code ?? "");
+        }
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -98,7 +111,7 @@ export default function MemberProfilePage() {
     try {
       const res = await fetch(`${BASE_URL}/api/admin/businesses/${id}/link-user`, {
         method: "PATCH",
-        headers: { ...headers, "Content-Type": "application/json" },
+        headers: jsonHeaders,
         body: JSON.stringify({ email: linkEmail.trim() }),
       });
       const data = await res.json();
@@ -116,6 +129,37 @@ export default function MemberProfilePage() {
     }
   };
 
+  const changePlan = async () => {
+    if (!profile?.application?.id) return;
+    setPlanChanging(true);
+    setPlanChangeError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/api/admin/applications/${profile.application.id}`, {
+        method: "PATCH",
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          plan_code: planChangeVal || null,
+          plan_change_note: planChangeNote.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Failed to change plan");
+      }
+      const oldPlan = profile.application.plan_code;
+      setProfile((p) => p && p.application
+        ? { ...p, application: { ...p.application, plan_code: planChangeVal || null } }
+        : p);
+      setPlanChangeNote("");
+      setPlanChangeSuccess(true);
+      setTimeout(() => setPlanChangeSuccess(false), 3000);
+    } catch (e: any) {
+      setPlanChangeError(e.message || "Failed to change plan");
+    } finally {
+      setPlanChanging(false);
+    }
+  };
+
   const checkMap = Object.fromEntries(
     (profile?.verification_checks ?? []).map((c) => [c.check_type, c.passed])
   );
@@ -123,7 +167,6 @@ export default function MemberProfilePage() {
   return (
     <AdminLayout>
       <div className="p-8 max-w-4xl">
-        {/* Back nav */}
         <Link href="/admin/members" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Members
         </Link>
@@ -152,6 +195,21 @@ export default function MemberProfilePage() {
                     {profile.application && (
                       <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${STATUS_STYLE[profile.application.status] ?? STATUS_STYLE.expired}`}>
                         {profile.application.status.replace("_", " ")}
+                      </span>
+                    )}
+                    {profile.application?.plan_code === "tvc_plus" && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/30">
+                        TVC Plus
+                      </span>
+                    )}
+                    {profile.application?.plan_code === "tvc_basic" && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full border bg-sky-500/10 text-sky-400 border-sky-500/30">
+                        TVC Basic
+                      </span>
+                    )}
+                    {!profile.application?.plan_code && profile.application && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full border bg-muted text-muted-foreground border-border">
+                        Legacy — Unassigned
                       </span>
                     )}
                   </div>
@@ -258,13 +316,61 @@ export default function MemberProfilePage() {
               </div>
             </div>
 
+            {/* Change Plan — only shown when member has an application */}
+            {profile.application && (
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-1">Membership Plan</h2>
+                <p className="text-xs text-muted-foreground mb-4">Plan changes are logged to the application's internal notes.</p>
+                {planChangeError && (
+                  <div className="bg-destructive/10 border border-destructive/30 text-destructive text-xs rounded-lg px-3 py-2 mb-3">
+                    {planChangeError}
+                  </div>
+                )}
+                {planChangeSuccess && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded-lg px-3 py-2 mb-3 flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Plan updated and logged.
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <Select value={planChangeVal} onValueChange={setPlanChangeVal}>
+                      <SelectTrigger><SelectValue placeholder="Legacy — Unassigned" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Legacy — Unassigned</SelectItem>
+                        <SelectItem value="tvc_basic">TVC Basic (£15/month)</SelectItem>
+                        <SelectItem value="tvc_plus">TVC Plus (£30/month)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={planChangeNote}
+                      onChange={(e) => setPlanChangeNote(e.target.value)}
+                      placeholder="Reason for change (optional)"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={changePlan}
+                    disabled={planChanging || planChangeVal === (profile.application.plan_code ?? "")}
+                    variant="outline"
+                    className="h-9 whitespace-nowrap"
+                  >
+                    {planChanging ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                    {planChanging ? "Saving…" : "Update Plan"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Auth status + link-user */}
             <div className="bg-card border border-border rounded-xl p-5">
               <h2 className="font-semibold text-sm mb-3 flex items-center gap-2">
                 <Link2 className="w-4 h-4 text-primary" /> Member Login Account
               </h2>
 
-              {/* Current link status */}
               <div className="flex items-center gap-3 text-sm mb-4">
                 {profile.user_id ? (
                   <>
@@ -280,7 +386,6 @@ export default function MemberProfilePage() {
                 )}
               </div>
 
-              {/* Link / re-link form */}
               <form onSubmit={handleLinkUser} className="flex flex-col sm:flex-row gap-2">
                 <div className="flex-1">
                   <Label htmlFor="link-email" className="text-xs text-muted-foreground mb-1 block">
@@ -306,7 +411,6 @@ export default function MemberProfilePage() {
                 </Button>
               </form>
 
-              {/* Result feedback */}
               {linkResult && (
                 <div className={`mt-3 flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${
                   linkResult.ok

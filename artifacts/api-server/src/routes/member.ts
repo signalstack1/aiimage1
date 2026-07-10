@@ -439,9 +439,9 @@ router.get("/member/sticker-orders", requireMember, async (req: AuthedRequest, r
 
     const { data, error } = await supabase
       .from("sticker_orders")
-      .select("id, plan_slug, quantity, unit_price_pence, status, created_at, notes")
+      .select("id, sticker_size, van_count, price_per_van_pence, expected_total_pence, payment_status, fulfilment_status, ordered_at, paid_at, dispatched_at")
       .eq("business_id", biz.id)
-      .order("created_at", { ascending: false });
+      .order("ordered_at", { ascending: false });
 
     if (error) {
       if (error.code === "42P01" || error.message?.includes("does not exist")) return ok(res, []);

@@ -289,7 +289,7 @@ export default async function handler(req: any, res: any) {
         if (!configured) { ok(res, []); return; }
         const { status } = req.query as Record<string,string>;
         let q = supabase.from("applications")
-          .select("id,status,priority,applicant_name,applicant_email,created_at,updated_at,businesses(id,business_name,trade_type,location,via_number)")
+          .select("id,status,priority,plan_code,applicant_name,applicant_email,created_at,updated_at,businesses(id,business_name,trade_type,location,via_number)")
           .order("created_at",{ascending:false});
         if (status && status !== "all") q = q.eq("status", status);
         const { data, error } = await q;
@@ -302,7 +302,7 @@ export default async function handler(req: any, res: any) {
       if (g1 === "applications" && g2 && !g3 && method === "GET") {
         if (!configured) { fail(res, "Not found", 404); return; }
         const { data: appl, error: applErr } = await supabase.from("applications")
-          .select(`id,status,priority,applicant_name,applicant_email,applicant_phone,message,created_at,updated_at,
+          .select(`id,status,priority,plan_code,applicant_name,applicant_email,applicant_phone,message,created_at,updated_at,
             businesses(id,business_name,trade_type,location,website,contact_phone,description,via_number,user_id)`)
           .eq("id", g2).single();
         if (applErr || !appl) { fail(res, "Application not found", 404); return; }
@@ -342,8 +342,8 @@ export default async function handler(req: any, res: any) {
           const prevPlan = currentAppl?.plan_code ?? "unassigned";
           const nextPlan = newPlanCode ?? "unassigned";
           const noteBody = plan_change_note?.trim()
-            ? `Plan changed: ${prevPlan} → ${nextPlan}. Notes: ${plan_change_note.trim()}`
-            : `Plan changed: ${prevPlan} → ${nextPlan}.`;
+            ? `Plan changed by admin: ${prevPlan} → ${nextPlan}. Notes: ${plan_change_note.trim()}`
+            : `Plan changed by admin: ${prevPlan} → ${nextPlan}.`;
           try { await supabase.from("admin_notes").insert({ application_id: g2, body: noteBody }); } catch { /* non-fatal */ }
         }
         ok(res, { ok: true });
@@ -467,7 +467,7 @@ export default async function handler(req: any, res: any) {
           .eq("id",g2).single();
         if (bizErr || !biz) { fail(res, "Not found", 404); return; }
         const [{ data: apps }, { data: docs }, { data: checks }] = await Promise.all([
-          supabase.from("applications").select("id,status,applicant_email,created_at").eq("business_id",g2).order("created_at",{ascending:false}).limit(1),
+          supabase.from("applications").select("id,status,plan_code,applicant_email,created_at").eq("business_id",g2).order("created_at",{ascending:false}).limit(1),
           supabase.from("documents").select("id,document_type,file_name,created_at").eq("business_id",g2).order("created_at",{ascending:false}),
           supabase.from("verification_checks").select("check_type,passed").eq("business_id",g2),
         ]);

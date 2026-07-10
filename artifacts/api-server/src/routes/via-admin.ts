@@ -251,7 +251,7 @@ router.get("/admin/applications", requireAdmin, async (req, res) => {
   try {
     let q = supabase
       .from("applications")
-      .select("id, status, priority, applicant_name, applicant_email, created_at, updated_at, businesses(id, business_name, trade_type, location, via_number)")
+      .select("id, status, priority, plan_code, applicant_name, applicant_email, created_at, updated_at, businesses(id, business_name, trade_type, location, via_number)")
       .order("created_at", { ascending: false });
     if (status && status !== "all") q = q.eq("status", status);
     const { data, error } = await q;
@@ -279,7 +279,7 @@ router.get("/admin/applications/:id", requireAdmin, async (req, res) => {
     const { data: appl, error: applErr } = await supabase
       .from("applications")
       .select(`
-        id, status, priority, applicant_name, applicant_email, applicant_phone, message, created_at, updated_at,
+        id, status, priority, plan_code, applicant_name, applicant_email, applicant_phone, message, created_at, updated_at,
         businesses(id, business_name, trade_type, location, website, contact_phone, description, via_number, user_id)
       `)
       .eq("id", id)
@@ -371,17 +371,22 @@ router.patch("/admin/applications/:id", requireAdmin, async (req, res) => {
         .eq("id", id)
         .maybeSingle();
 
+      // Validate before writing
+      const validPlans = ["tvc_basic", "tvc_plus", null];
+      if (!validPlans.includes(newPlan)) {
+        return err(res, "plan_code must be tvc_basic, tvc_plus, or null", 400);
+      }
+
       const { error: planErr } = await supabase
         .from("applications")
         .update({ plan_code: newPlan, updated_at: new Date().toISOString() })
         .eq("id", id);
       if (planErr) throw planErr;
-
       // Audit log to admin_notes
       const oldPlan = currentAppl?.plan_code ?? null;
       const noteBody = plan_change_note?.trim()
-        ? `Plan changed: ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}. Notes: ${plan_change_note.trim()}`
-        : `Plan changed: ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}.`;
+        ? `Plan changed by admin: ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}. Notes: ${plan_change_note.trim()}`
+        : `Plan changed by admin: ${oldPlan ?? "unassigned"} → ${newPlan ?? "unassigned"}.`;
       await supabase.from("admin_notes").insert({
         application_id: id,
         body: noteBody,
@@ -632,7 +637,7 @@ router.get("/admin/members/:id", requireAdmin, async (req, res) => {
     if (bizErr || !biz) return err(res, bizErr?.message ?? "Not found", 404);
 
     const [{ data: apps }, { data: docs }, { data: checks }] = await Promise.all([
-      supabase.from("applications").select("id, status, applicant_email, created_at").eq("business_id", id).order("created_at", { ascending: false }).limit(1),
+      supabase.from("applications").select("id, status, plan_code, applicant_email, created_at").eq("business_id", id).order("created_at", { ascending: false }).limit(1),
       supabase.from("documents").select("id, document_type, file_name, created_at").eq("business_id", id).order("created_at", { ascending: false }),
       supabase.from("verification_checks").select("check_type, passed").eq("business_id", id),
     ]);
