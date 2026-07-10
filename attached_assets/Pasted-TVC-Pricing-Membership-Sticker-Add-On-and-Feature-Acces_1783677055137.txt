@@ -1,0 +1,1061 @@
+TVC Pricing, Membership, Sticker Add-On and Feature Access Update
+
+Please update the TVC website so it has two clearly defined monthly membership plans:
+
+TVC Basic
+TVC Plus
+
+The website must also offer optional TVC van sticker packs as separate one-time add-ons available to members of either plan.
+
+Before making changes, inspect the current pricing page, application flow, account creation flow, payment-link setup, member dashboard, public profiles, admin controls and Supabase database structure.
+
+Do not remove or break existing working functionality.
+
+Supabase must remain the production backend and source of truth.
+Vercel must remain the production frontend host.
+Replit is the development environment only and must not become a production dependency.
+
+1. MEMBERSHIP PLAN 1 — TVC BASIC
+Plan name
+
+TVC Basic
+
+Price
+
+£15 per month
+
+Public-facing description
+
+TVC Basic provides a business with verified TVC membership, a unique TVC number and a standard public verification profile that customers can check online.
+
+Included features
+Unique TVC number assigned
+Standard public TVC verified profile
+Digital TVC verification badge
+Link to the business website
+Business telephone number displayed
+Member dashboard access
+Unique referral code
+Cancel anytime
+Standard Verified Profile
+
+The TVC Basic plan should include a simple public verification profile.
+
+The public profile may display:
+
+Business name
+TVC number
+TVC verification status
+Trade type
+Business location or service area, where applicable
+Website link
+Telephone number
+Date approved, where applicable
+Basic verification details
+
+The TVC Basic profile must not include the enhanced promotional features reserved for TVC Plus.
+
+TVC Basic members must not have access to:
+
+Work portfolio gallery
+Work-image uploads
+Image descriptions
+Full business introduction section
+Multiple social-media links
+Customer testimonial submission
+Testimonial management
+Enhanced profile presentation features
+2. MEMBERSHIP PLAN 2 — TVC PLUS
+Plan name
+
+TVC Plus
+
+Price
+
+£30 per month
+
+Public-facing description
+
+TVC Plus includes everything available in TVC Basic, together with an enhanced business profile that helps members showcase their work, introduce their business and build customer trust.
+
+Included features
+
+Everything included in TVC Basic, plus:
+
+Enhanced TVC business profile
+Full business introduction section
+Showcase previous examples of work
+Upload up to 20 new work images per calendar month
+Add a description to each uploaded image
+Link supported social-media accounts
+Allow customers to submit testimonials
+Display approved customer testimonials
+Enhanced profile presentation
+Cancel anytime
+Enhanced Business Profile
+
+The TVC Plus public profile should include:
+
+All standard verification information
+Business introduction
+Work portfolio
+Image gallery
+Image descriptions
+Social-media links
+Customer testimonials
+Additional business information where supported
+
+The pricing page should clearly state:
+
+Everything included in TVC Basic, plus an enhanced business profile, work portfolio, social links and testimonials.
+
+3. OPTIONAL TVC VAN STICKER PACKS
+
+TVC van sticker packs are optional one-time add-ons.
+
+They are available to customers joining either TVC Basic or TVC Plus.
+
+Sticker packs must not appear as a third membership plan.
+
+Small TVC Sticker Pack
+
+Price: £30 per van
+
+Medium TVC Sticker Pack
+
+Price: £50 per van
+
+Each sticker pack should include the approved TVC design containing:
+
+TVC logo
+“TVC Approved”
+The member’s unique TVC number
+checktvc.co.uk
+
+The final print specification and quantity of physical stickers inside each pack may be managed separately by the admin.
+
+Customer options
+
+Customers must be able to select:
+
+No sticker pack
+Small sticker pack
+Medium sticker pack
+
+If a sticker pack is selected, the customer must enter:
+
+Number of vans
+
+The sticker cost must be calculated as:
+
+Small sticker pack
+
+£30 × number of vans
+
+Medium sticker pack
+
+£50 × number of vans
+
+Examples:
+
+1 small sticker pack = £30
+2 small sticker packs = £60
+1 medium sticker pack = £50
+3 medium sticker packs = £150
+
+The sticker charge must remain separate from the monthly membership price.
+
+The sticker pack is a one-time charge and must never be shown as recurring monthly billing.
+
+4. PRICING PAGE DESIGN
+
+Update the pricing page to contain two membership cards.
+
+TVC Basic pricing card
+
+Display:
+
+TVC Basic
+
+£15 per month
+
+Include the Basic features listed above.
+
+Primary button:
+
+Join TVC Basic
+
+TVC Plus pricing card
+
+Display:
+
+TVC Plus
+
+£30 per month
+
+Include the Plus features listed above.
+
+Primary button:
+
+Join TVC Plus
+
+Mark TVC Plus visually as:
+
+Most Popular
+
+Pricing comparison
+
+Make the difference between the plans easy to understand.
+
+Use the following terminology consistently:
+
+TVC Basic: Standard Verified Profile
+TVC Plus: Enhanced Business Profile
+
+Avoid saying only “public profile” on both plans without explaining the difference.
+
+Sticker section
+
+Underneath the two membership cards, create a separate section titled:
+
+Optional TVC Van Sticker Packs
+
+Explain that approved TVC members can purchase physical van stickers showing their TVC approval status, TVC number and the website checktvc.co.uk.
+
+Show:
+
+Small Sticker Pack — £30 per van
+Medium Sticker Pack — £50 per van
+One-time purchase
+Available with either membership plan
+
+Do not place the sticker options inside only one membership card.
+
+5. APPLICATION FLOW
+
+Update the application process so it supports the two plans and optional sticker add-ons.
+
+The intended flow is:
+
+Customer selects TVC Basic or TVC Plus.
+Customer begins the TVC application.
+Customer enters their business information.
+Customer creates their login details.
+Customer may select an optional sticker pack.
+Customer selects the number of vans if purchasing stickers.
+The application records the selected membership plan.
+The application records the sticker selection.
+The customer proceeds to the correct external payment link.
+The application remains pending until reviewed and approved.
+Once approved and payment is confirmed through the existing process, the member receives the correct plan access.
+
+Preserve the existing rule that the customer applies before receiving approved-member access.
+
+Do not automatically mark an applicant as TVC verified merely because they opened or completed a payment link.
+
+6. EXTERNAL PAYMENT-LINK SYSTEM
+
+The project uses external payment links.
+
+Do not add Stripe API billing, Stripe Checkout sessions, subscription webhooks or a new payment gateway unless explicitly instructed.
+
+The admin must be able to configure separate payment links for:
+
+TVC Basic monthly membership
+TVC Plus monthly membership
+Small sticker pack
+Medium sticker pack
+Membership payment links
+
+The selected membership plan must load the correct monthly payment link.
+
+Sticker payment links
+
+Sticker packs are priced per van.
+
+Inspect the existing payment-link architecture and implement the safest compatible solution.
+
+Possible acceptable approaches include:
+
+A set of quantity-specific external payment links
+A manual admin-generated sticker payment link based on quantity
+An existing provider feature that supports customer-selected quantity
+A payment-link structure already present in the project
+
+Do not pretend a single fixed-price payment link can automatically charge any quantity unless the external provider genuinely supports quantities.
+
+If the current payment-link system cannot securely calculate a variable per-van payment, clearly report the limitation and implement a safe manual or quantity-link process instead.
+
+The system must record:
+
+Expected sticker amount
+Sticker size
+Number of vans
+Sticker payment status
+External payment reference or link used, where applicable
+7. ACCOUNT CREATION AND LOGIN
+
+Ensure customers can:
+
+Create login details during the application
+Use their email and password after approval
+Log in to the member dashboard
+Access only the features included in their membership plan
+
+Preserve existing account security and Supabase Auth.
+
+Do not create duplicate user accounts when an applicant later becomes an approved member.
+
+8. MEMBER DASHBOARD ACCESS
+
+The member dashboard must respond to the member’s active plan.
+
+Do not rely only on hiding buttons in the frontend.
+
+Plan restrictions must also be enforced through backend logic and Supabase Row Level Security where appropriate.
+
+TVC Basic dashboard access
+
+Allow TVC Basic members to access:
+
+TVC number
+Verification status
+Digital verification badge
+Business name
+Trade type
+Website
+Telephone number
+Standard profile details
+Referral code
+Membership-plan details
+Sticker-order details
+Account settings
+Cancellation information
+
+Do not allow TVC Basic members to access or submit:
+
+Portfolio images
+Portfolio image descriptions
+Enhanced business introduction
+Social-media management
+Testimonial management
+Plus-only profile settings
+
+Where Plus-only tools are visible for upgrade marketing, they must be clearly locked and must not save data.
+
+TVC Plus dashboard access
+
+Allow TVC Plus members to access everything available in TVC Basic, plus:
+
+Business introduction editor
+Work portfolio manager
+Image uploader
+Image-description editor
+Social-media link manager
+Testimonial manager
+Enhanced public-profile controls
+Monthly image-usage information
+9. PLAN ENTITLEMENTS
+
+Create a clear and maintainable entitlement system.
+
+Do not scatter hardcoded plan checks throughout unrelated components where avoidable.
+
+Use a central plan or entitlement structure such as:
+
+basic_profile
+enhanced_profile
+website_link
+telephone_display
+referral_code
+portfolio_access
+social_links
+testimonial_access
+monthly_image_limit
+
+Expected plan values:
+
+TVC Basic
+basic_profile: true
+enhanced_profile: false
+website_link: true
+telephone_display: true
+referral_code: true
+portfolio_access: false
+social_links: false
+testimonial_access: false
+monthly_image_limit: 0
+TVC Plus
+basic_profile: true
+enhanced_profile: true
+website_link: true
+telephone_display: true
+referral_code: true
+portfolio_access: true
+social_links: true
+testimonial_access: true
+monthly_image_limit: 20
+
+The exact technical implementation may follow the project’s current architecture, but it must be consistent and easy to maintain.
+
+10. TVC PLUS IMAGE-UPLOAD LIMIT
+
+TVC Plus members may upload up to 20 new work images per calendar month.
+
+The system must:
+
+Count successful uploads during the current calendar month
+Display how many uploads have been used
+Display how many uploads remain
+Prevent upload number 21 during the same calendar month
+Reset the allowance at the start of the next calendar month
+Keep previously uploaded images visible
+Keep image descriptions attached to the correct image
+
+Deleting an image must not restore the monthly upload allowance.
+
+This prevents users from repeatedly uploading and deleting images to bypass the limit.
+
+Failed or abandoned uploads should not count against the allowance.
+
+The upload limit must be enforced securely in the backend, not only in the user interface.
+
+11. IMAGE STORAGE
+
+Store portfolio images in Supabase Storage.
+
+Do not store production images:
+
+In the Replit filesystem
+In a local upload folder
+In browser localStorage
+As temporary development files
+On a Replit-hosted production server
+
+Use secure storage paths tied to the authenticated member.
+
+Ensure members can only manage their own images.
+
+Admin users may retain moderation and removal access.
+
+Validate:
+
+Supported image formats
+Maximum image size
+Upload ownership
+Storage permissions
+Deleted-image cleanup
+12. BUSINESS INTRODUCTION
+
+TVC Plus members must be able to add an introduction to their business.
+
+Add a sensible character limit to prevent abuse or excessively large entries.
+
+Suggested limit:
+
+1,500 characters
+
+The interface should show the remaining character count.
+
+The public profile must display the introduction safely.
+
+Sanitise or safely render user-submitted content to prevent script injection.
+
+13. SOCIAL-MEDIA LINKS
+
+TVC Plus members may add supported social-media links.
+
+Support common platforms such as:
+
+Facebook
+Instagram
+LinkedIn
+TikTok
+YouTube
+X
+Other approved platform, where supported
+
+Validate submitted URLs.
+
+Do not allow unsafe protocols such as:
+
+javascript:
+data:
+file:
+
+Social links must not be available on TVC Basic public profiles.
+
+14. CUSTOMER TESTIMONIALS
+
+Testimonials are available only for TVC Plus profiles.
+
+Customers should be able to submit a testimonial from the public profile.
+
+Suggested fields:
+
+Customer name
+Testimonial text
+Submission date
+Member or business ID
+Approval status
+Rejection status
+Moderation notes, where applicable
+
+Optional fields may include:
+
+Customer email for internal verification
+Service received
+Work completion date
+
+Do not display the customer’s email publicly.
+
+Moderation flow
+
+Testimonials must not appear publicly immediately.
+
+Use a moderation workflow:
+
+Customer submits testimonial.
+Testimonial receives a pending status.
+The business member or admin reviews it.
+The testimonial may be approved or rejected.
+Only approved testimonials display publicly.
+Admin may remove a testimonial at any time.
+
+Protect the form against obvious spam and repeated submissions.
+
+TVC Basic profiles must not show the testimonial-submission form.
+
+15. REFERRAL CODES
+
+Both plans include a referral code.
+
+Ensure each approved member has a unique referral code.
+
+The member dashboard should display:
+
+Referral code
+Copy button
+Brief explanation of how it is used
+
+Do not automatically promise a financial reward unless the existing TVC referral programme already defines one.
+
+Keep referral tracking separate from membership plan access.
+
+16. DIGITAL VERIFICATION BADGE
+
+Both plans include a digital verification badge.
+
+The badge should display or reference:
+
+TVC Approved
+Member TVC number
+checktvc.co.uk
+
+Where technically appropriate, provide:
+
+Downloadable image
+Website badge version
+Copyable verification link
+Badge preview
+
+Do not expose private information inside badge URLs.
+
+The digital badge should direct customers to the member’s public TVC verification profile or verification search process.
+
+17. STICKER ORDERS
+
+Create or update the sticker-order functionality.
+
+Each order should store:
+
+Member ID
+Application ID, where applicable
+Membership plan
+Sticker size
+Number of vans
+Price per van
+Expected total
+Payment status
+Fulfilment status
+Delivery details
+Date ordered
+Date paid
+Date dispatched
+Admin notes
+
+Suggested fulfilment statuses:
+
+Not ordered
+Awaiting payment
+Paid
+Preparing
+Dispatched
+Completed
+Cancelled
+Refunded
+
+Sticker orders must remain separate from recurring membership records.
+
+18. ADMIN DASHBOARD
+
+Update the admin dashboard so authorised admins can:
+
+View applications
+View selected membership plan
+View Basic or Plus status
+Approve or reject applications
+View payment status
+Assign TVC numbers
+View and manage member profiles
+Change a member between Basic and Plus
+View sticker selections
+View sticker quantities
+View expected sticker totals
+Manage sticker-order payment status
+Manage sticker fulfilment status
+View monthly Plus image usage
+Remove inappropriate images
+Review testimonials
+Approve or reject testimonials
+Suspend a public profile
+Suspend Plus-only features
+Manage external payment links
+View referral codes
+Search by TVC number, business name or email
+
+Any plan change performed by an admin must be logged.
+
+Where possible, store:
+
+Previous plan
+New plan
+Admin user
+Date and time
+Reason or note
+19. DATABASE REQUIREMENTS
+
+Inspect the current Supabase schema before adding new fields or tables.
+
+Reuse existing well-designed structures where appropriate.
+
+Do not duplicate data unnecessarily.
+
+The backend must be able to represent:
+
+Membership data
+Plan name
+Plan code
+Monthly price
+Membership status
+Start date
+Cancellation status
+Upgrade or downgrade status
+
+Suggested plan codes:
+
+tvc_basic
+tvc_plus
+Profile data
+Standard profile fields
+Business introduction
+Website
+Telephone number
+Social-media links
+Plan-based visibility
+Portfolio data
+Image URL or storage path
+Image description
+Upload date
+Upload month
+Display order
+Member ownership
+Testimonial data
+Member ID
+Customer name
+Testimonial text
+Submission date
+Approval status
+Moderation fields
+Sticker data
+Sticker size
+Quantity of vans
+Price per van
+Expected total
+Payment status
+Fulfilment status
+Payment-link configuration
+Basic membership payment link
+Plus membership payment link
+Small sticker payment link or process
+Medium sticker payment link or process
+Audit data
+Plan changes
+Admin actions
+Moderation actions where appropriate
+
+Use proper data types and constraints.
+
+Do not store prices only as formatted strings such as “£15”.
+
+Store monetary values in a consistent numeric format, preferably integer pence:
+
+£15 = 1500
+£30 = 3000
+£50 = 5000
+20. SUPABASE ROW LEVEL SECURITY
+
+Review and update Row Level Security policies.
+
+Members must only be able to:
+
+Read their own private account information
+Edit their own permitted profile information
+Manage their own Plus portfolio where entitled
+Manage their own social links where entitled
+Review testimonials connected to their own Plus profile where permitted
+View their own sticker orders
+
+Public users may only access approved public-profile information intended for public display.
+
+Public users must not access:
+
+Private member data
+Internal application information
+Payment information
+Admin notes
+Private customer email addresses
+Unapproved testimonials
+Suspended profiles
+
+Admin operations must require a verified admin role.
+
+Do not trust a frontend-provided role or plan value without server-side validation.
+
+21. EXISTING MEMBERS AND MIGRATION SAFETY
+
+Do not delete existing users, applications, profiles, TVC numbers or payment records.
+
+Before changing the schema:
+
+Inspect current membership fields.
+Inspect current plan values.
+Inspect existing public profiles.
+Inspect current dashboard permissions.
+Inspect current payment-link records.
+Inspect existing sticker or product-order records.
+Create a safe migration plan.
+Backfill only where the correct outcome is clear.
+
+Do not guess which new plan an existing customer should receive.
+
+If the existing data does not clearly map to Basic or Plus, produce a report listing the affected members for manual assignment.
+
+Any existing plan may temporarily map to a migration status such as:
+
+legacy_unassigned
+
+Do not remove access from existing customers without admin review.
+
+22. UPGRADE AND DOWNGRADE READINESS
+
+Build the structure so members can later move between TVC Basic and TVC Plus.
+
+For this update, admin-controlled plan changes are required.
+
+If self-service upgrades or downgrades do not currently exist, do not introduce a complex automated billing system.
+
+When a member changes from Basic to Plus:
+
+Enable Plus dashboard tools
+Enable enhanced public-profile features
+Apply the 20-image monthly limit
+Keep all existing Basic information
+
+When a member changes from Plus to Basic:
+
+Disable Plus editing tools
+Hide Plus-only content from the public profile
+Do not automatically delete existing images, introductions, social links or testimonials
+Preserve the data in case the member returns to Plus
+Clearly mark the enhanced content as inactive
+23. CANCELLATION
+
+Both plans state “Cancel anytime”.
+
+Ensure the site explains the cancellation process accurately based on the external payment provider.
+
+Do not claim cancellation is instant if manual action is required.
+
+On cancellation:
+
+Update membership status appropriately
+Preserve necessary records
+Remove or suspend public verified status according to the TVC business rules
+Preserve admin audit history
+Preserve sticker-order records
+Do not delete the Supabase Auth account automatically unless explicitly required
+
+Clarify any manual cancellation steps in the dashboard.
+
+24. PUBLIC TVC NUMBER LOOKUP
+
+Ensure the public TVC lookup continues to work for both plans.
+
+A customer entering a valid TVC number should see:
+
+For TVC Basic
+Verified status
+Business identity
+Trade type
+Website
+Telephone number
+Standard profile information
+For TVC Plus
+Everything shown for Basic
+Business introduction
+Portfolio
+Social links
+Approved testimonials
+
+For invalid, suspended, expired or cancelled TVC numbers, show an appropriate message without exposing private information.
+
+25. FRONTEND AND USER EXPERIENCE
+
+Ensure:
+
+Pricing cards work on desktop and mobile
+Plan differences are immediately understandable
+Sticker packs are clearly optional
+Sticker prices state “per van”
+Sticker prices state “one-time”
+Membership prices state “per month”
+The customer can go back and change their selected plan before payment
+The selected plan is shown clearly throughout the application
+The selected sticker option is shown clearly before payment
+Calculated sticker totals are accurate
+Error messages are clear
+Loading states are handled
+Duplicate form submission is prevented
+
+Use GBP formatting consistently.
+
+Examples:
+
+£15/month
+£30/month
+£30 per van
+£50 per van
+26. ANALYTICS AND EVENT TRACKING
+
+Where the project already has analytics, add non-sensitive events for:
+
+Basic plan selected
+Plus plan selected
+Small sticker pack selected
+Medium sticker pack selected
+No sticker selected
+Application started
+Application completed
+Payment link opened
+Upgrade interest clicked
+
+Do not send personal or confidential application information into analytics.
+
+Do not introduce a new analytics provider unless one already exists or permission is given.
+
+27. ARCHITECTURE RULES
+
+These rules are mandatory:
+
+Replit is the builder and development environment only.
+Supabase is the production database, authentication provider and persistent backend source of truth.
+Supabase Storage holds production uploads.
+Vercel hosts the production frontend.
+GitHub remains the source repository where applicable.
+No production feature may require Replit to remain online.
+No production API request may point to localhost, replit.dev, repl.co or another Replit runtime.
+No production data may be stored permanently in the Replit filesystem.
+No Supabase service-role key may be exposed in frontend code.
+No secret key may be placed in a VITE_ or NEXT_PUBLIC_ variable.
+Public Supabase browser access must use the appropriate anon or publishable key together with secure RLS policies.
+Secure privileged operations must run server-side.
+
+Update the repository architecture documentation so future Replit work continues to follow these rules.
+
+28. ENVIRONMENT VARIABLES
+
+Audit all environment variables related to this update.
+
+Document variable names only, never secret values.
+
+Update or create:
+
+ENVIRONMENT_VARIABLES.md
+
+For each variable, document:
+
+Variable name
+Purpose
+Public or secret
+Where it is configured
+Whether it is required in Vercel
+Whether it is required in Supabase
+Whether it is development-only
+
+Ensure no required production variable exists only inside Replit Secrets.
+
+29. REQUIRED TESTING
+
+Test the complete flow for TVC Basic:
+
+Select Basic.
+Apply.
+Create account.
+Select no stickers.
+Open the Basic payment link.
+Approve the application through admin.
+Log in.
+Confirm Basic dashboard access.
+Confirm Plus features are securely unavailable.
+Confirm the Basic public profile works.
+Confirm TVC number lookup works.
+
+Test the complete flow for TVC Plus:
+
+Select Plus.
+Apply.
+Create account.
+Select an optional sticker pack.
+Enter multiple vans.
+Confirm the total.
+Open the correct payment process.
+Approve the application.
+Log in.
+Add a business introduction.
+Add social links.
+Upload work images.
+Add image descriptions.
+Submit a customer testimonial.
+Approve the testimonial.
+Confirm the enhanced public profile works.
+
+Test sticker scenarios:
+
+No sticker
+One small pack
+Multiple small packs
+One medium pack
+Multiple medium packs
+Change sticker size
+Change quantity
+Zero quantity prevented
+Negative quantity prevented
+Decimal quantity prevented
+Duplicate order prevented where applicable
+Sticker amount remains one-time
+Membership amount remains monthly
+
+Test Plus image limits:
+
+Upload 19 images
+Upload image 20
+Block image 21
+Delete an image
+Confirm the allowance does not return
+Confirm the next calendar month resets the count
+
+Test security:
+
+Basic user attempts Plus API/database action
+User attempts to edit another member’s profile
+User attempts to access another member’s images
+Public user attempts to access private testimonial details
+Suspended profile attempts to appear publicly
+Invalid plan value submitted from browser
+Service-role key absent from browser bundle
+
+Test deployment:
+
+Production frontend builds on Vercel
+Nested routes refresh correctly
+Supabase reads and writes work
+Auth works
+Storage works
+No feature depends on Replit being online
+30. COMPLETION REPORT
+
+After completing the work, provide a clear report containing:
+
+Existing architecture found
+Existing pricing structure found
+Existing application flow found
+Existing payment-link system found
+Files changed
+Pages changed
+Components changed
+Database tables changed
+Database columns added
+Database migrations created
+RLS policies added or changed
+Storage changes
+Basic-plan permissions
+Plus-plan permissions
+Image-limit implementation
+Testimonial implementation
+Sticker-order implementation
+External payment-link implementation
+Existing members requiring manual plan assignment
+Environment variables requiring manual setup
+Vercel actions required
+Supabase actions required
+Any limitation caused by the external payment-link provider
+Final test results
+Confirmation that the production business does not depend on Replit
+
+Do not simply say the update is complete.
+
+Provide evidence from the codebase and test results.
+
+Final public pricing copy
+
+Use the following wording on the live pricing page unless the existing design requires shorter text:
+
+TVC Basic — £15 per month
+
+Get verified with TVC and give customers a simple way to confirm your business.
+
+Includes:
+
+Unique TVC number
+Standard verified profile
+Digital verification badge
+Website link
+Telephone number
+Member dashboard
+Referral code
+Cancel anytime
+TVC Plus — £30 per month
+
+Everything in TVC Basic, plus the tools to showcase your business and previous work.
+
+Includes:
+
+Enhanced business profile
+Business introduction
+Work portfolio
+Up to 20 new images per month
+Image descriptions
+Social-media links
+Customer testimonials
+Cancel anytime
+Optional TVC Van Sticker Packs
+
+Show customers that your business is TVC approved.
+
+Small Sticker Pack — £30 per van
+Medium Sticker Pack — £50 per van
+One-time payment
+Available with TVC Basic or TVC Plus
+
+Each sticker displays the member’s unique TVC number and checktvc.co.uk.
