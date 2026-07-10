@@ -303,10 +303,10 @@ function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="fixed top-0 inset-x-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex flex-col items-start justify-center">
+        <div className="max-w-6xl mx-auto px-6 py-2 flex items-center justify-between">
+          <Link href="/" className="flex flex-col items-center">
             <TVCLogo size={109} />
-            <span className="text-[10px] font-semibold tracking-wide leading-none mt-0.5 whitespace-nowrap">
+            <span className="text-[10px] font-semibold tracking-wide whitespace-nowrap mt-1">
               Trades <span className="text-emerald-400">|</span> Verified <span className="text-emerald-400">|</span> Checked
             </span>
           </Link>
