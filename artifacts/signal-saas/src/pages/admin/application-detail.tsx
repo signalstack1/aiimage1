@@ -24,6 +24,13 @@ const CHECK_LABELS: Record<string, string> = {
   digital_footprint: "Digital Footprint",
   public_records:    "Contact & Public Records",
 };
+
+// Maps document_type → verification check_type
+const DOC_TO_CHECK: Record<string, string> = {
+  insurance:        "insurance",
+  accreditation:    "accreditations",
+  proof_of_address: "local_address",
+};
 const CHECK_ORDER = ["local_address","business_type","insurance","accreditations","digital_footprint","public_records"];
 
 const STATUS_OPTIONS = ["pending_payment","pending","in_review","approved","rejected","expired"];
@@ -225,6 +232,7 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
   };
 
   const saveDocReview = async (docId: string, status: string) => {
+    if (!app) return;
     setDocSaving((s) => ({ ...s, [docId]: true }));
     try {
       await fetch(`${BASE_URL}/api/admin/documents/${docId}`, {
@@ -236,6 +244,8 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
           expiry_date: docExpiry[docId] ?? undefined,
         }),
       });
+      // Update local document state
+      const doc = app.documents.find((d) => d.id === docId);
       setApp((prev) => {
         if (!prev) return prev;
         return {
@@ -247,6 +257,24 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
           ),
         };
       });
+      // Auto-update the linked verification check when approving or rejecting
+      if (doc && (status === "approved" || status === "rejected")) {
+        const checkType = DOC_TO_CHECK[doc.document_type];
+        if (checkType && app.businesses?.id) {
+          const checkStatus = status === "approved" ? "verified" : "unverified";
+          await fetch(`${BASE_URL}/api/admin/verification-checks/upsert`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              application_id: app.id,
+              business_id: app.businesses.id,
+              check_type: checkType,
+              status: checkStatus,
+            }),
+          });
+          handleCheckUpdate(checkType, checkStatus);
+        }
+      }
     } catch { } finally {
       setDocSaving((s) => ({ ...s, [docId]: false }));
     }
