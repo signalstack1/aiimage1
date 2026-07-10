@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Lock } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { getPlanEntitlements } from "@/config/app";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "";
 
@@ -29,6 +30,10 @@ interface ProfileForm {
 
 export default function DashboardProfile() {
   const { member, refreshMember, fetchWithAuth } = useAuth();
+  const planCode = member?.application?.plan_code ?? null;
+  const entitlements = getPlanEntitlements(planCode);
+  const canEditDescription = entitlements.enhanced_profile;
+
   const [form, setForm] = useState<ProfileForm>({
     business_name: "",
     trade_type: "",
@@ -69,10 +74,12 @@ export default function DashboardProfile() {
     setSaving(true);
     setError(null);
     try {
+      // Strip Plus-only fields if member is on Basic plan
+      const payload = canEditDescription ? form : (({ description: _d, ...rest }) => rest)(form);
       const res = await fetchWithAuth(`${BASE_URL}/api/member/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -142,15 +149,29 @@ export default function DashboardProfile() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="description">Business description</Label>
-              <textarea
-                id="description"
-                value={form.description}
-                onChange={update("description")}
-                rows={3}
-                placeholder="A brief description of your business, years of experience, areas covered…"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              />
+              <Label htmlFor="description" className="flex items-center gap-2">
+                Business description
+                {!canEditDescription && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-muted border border-border text-muted-foreground">
+                    <Lock className="w-2.5 h-2.5" /> TVC Plus
+                  </span>
+                )}
+              </Label>
+              {canEditDescription ? (
+                <textarea
+                  id="description"
+                  value={form.description}
+                  onChange={update("description")}
+                  rows={3}
+                  placeholder="A brief description of your business, years of experience, areas covered…"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                />
+              ) : (
+                <div className="w-full rounded-md border border-input bg-muted/40 px-3 py-3 text-sm text-muted-foreground flex items-start gap-2 min-h-[72px]">
+                  <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>Business description is available on TVC Plus. Upgrade your plan to add a business bio.</span>
+                </div>
+              )}
             </div>
           </div>
 

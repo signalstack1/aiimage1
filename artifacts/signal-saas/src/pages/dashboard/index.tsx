@@ -342,6 +342,89 @@ export default function DashboardHome() {
           </div>
         </div>
 
+        {/* Plus-only feature sections */}
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Portfolio & Photo Gallery */}
+          <div className={`relative bg-card border rounded-2xl p-5 overflow-hidden ${isBasic ? "border-border opacity-80" : "border-border"}`}>
+            {isBasic && (
+              <div className="absolute inset-0 bg-card/60 backdrop-blur-[1px] flex items-center justify-center z-10 rounded-2xl">
+                <div className="text-center px-4">
+                  <Lock className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-xs font-semibold text-muted-foreground">TVC Plus only</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Upgrade to unlock portfolio</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2 mb-2">
+              <Award className="w-4 h-4 text-primary" />
+              <h3 className="font-bold text-sm">Portfolio & Gallery</h3>
+              {!isBasic && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 ml-auto">TVC Plus</span>}
+            </div>
+            <p className="text-xs text-muted-foreground">Showcase your best work with photos visible on your public profile.</p>
+            {!isBasic && <p className="text-xs text-muted-foreground mt-3 italic">Coming soon — being built now.</p>}
+          </div>
+
+          {/* Social Media Links */}
+          <div className={`relative bg-card border rounded-2xl p-5 overflow-hidden ${isBasic ? "border-border opacity-80" : "border-border"}`}>
+            {isBasic && (
+              <div className="absolute inset-0 bg-card/60 backdrop-blur-[1px] flex items-center justify-center z-10 rounded-2xl">
+                <div className="text-center px-4">
+                  <Lock className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-xs font-semibold text-muted-foreground">TVC Plus only</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Upgrade to unlock social links</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2 mb-2">
+              <ExternalLink className="w-4 h-4 text-primary" />
+              <h3 className="font-bold text-sm">Social Media Links</h3>
+              {!isBasic && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 ml-auto">TVC Plus</span>}
+            </div>
+            <p className="text-xs text-muted-foreground">Add links to Facebook, Instagram, and other channels on your profile.</p>
+            {!isBasic && <p className="text-xs text-muted-foreground mt-3 italic">Coming soon — being built now.</p>}
+          </div>
+
+          {/* Business Introduction */}
+          <div className={`relative bg-card border rounded-2xl p-5 overflow-hidden ${isBasic ? "border-border opacity-80" : "border-border"}`}>
+            {isBasic && (
+              <div className="absolute inset-0 bg-card/60 backdrop-blur-[1px] flex items-center justify-center z-10 rounded-2xl">
+                <div className="text-center px-4">
+                  <Lock className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-xs font-semibold text-muted-foreground">TVC Plus only</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Upgrade to add a business intro</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2 mb-2">
+              <User className="w-4 h-4 text-primary" />
+              <h3 className="font-bold text-sm">Business Introduction</h3>
+              {!isBasic && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 ml-auto">TVC Plus</span>}
+            </div>
+            <p className="text-xs text-muted-foreground">Write a detailed intro about your experience, specialisms, and service area.</p>
+            {!isBasic && <p className="text-xs text-muted-foreground mt-3 italic">Coming soon — being built now.</p>}
+          </div>
+
+          {/* Customer Testimonials */}
+          <div className={`relative bg-card border rounded-2xl p-5 overflow-hidden ${isBasic ? "border-border opacity-80" : "border-border"}`}>
+            {isBasic && (
+              <div className="absolute inset-0 bg-card/60 backdrop-blur-[1px] flex items-center justify-center z-10 rounded-2xl">
+                <div className="text-center px-4">
+                  <Lock className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-xs font-semibold text-muted-foreground">TVC Plus only</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Upgrade to add testimonials</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="w-4 h-4 text-primary" />
+              <h3 className="font-bold text-sm">Customer Testimonials</h3>
+              {!isBasic && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 ml-auto">TVC Plus</span>}
+            </div>
+            <p className="text-xs text-muted-foreground">Display verified customer reviews and testimonials on your public profile.</p>
+            {!isBasic && <p className="text-xs text-muted-foreground mt-3 italic">Coming soon — being built now.</p>}
+          </div>
+        </div>
+
         {/* Referral code */}
         {referralCode && (
           <div className="bg-card border border-border rounded-2xl p-6 mb-6">

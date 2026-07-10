@@ -341,9 +341,10 @@ export default async function handler(req: any, res: any) {
           if (planErr) throw planErr;
           const prevPlan = currentAppl?.plan_code ?? "unassigned";
           const nextPlan = newPlanCode ?? "unassigned";
+          const auditTs = new Date().toISOString();
           const noteBody = plan_change_note?.trim()
-            ? `Plan changed by admin: ${prevPlan} → ${nextPlan}. Notes: ${plan_change_note.trim()}`
-            : `Plan changed by admin: ${prevPlan} → ${nextPlan}.`;
+            ? `[${auditTs}] Plan changed by admin: ${prevPlan} → ${nextPlan}. Notes: ${plan_change_note.trim()}`
+            : `[${auditTs}] Plan changed by admin: ${prevPlan} → ${nextPlan}.`;
           try { await supabase.from("admin_notes").insert({ application_id: g2, body: noteBody }); } catch { /* non-fatal */ }
         }
         ok(res, { ok: true });
@@ -616,6 +617,20 @@ export default async function handler(req: any, res: any) {
       if (g1 === "profile" && method === "PATCH") {
         if (!configured) { ok(res, req.body); return; }
         const { business_name, trade_type, location, website, contact_phone, contact_enabled, description } = req.body ?? {};
+
+        // ── Server-side plan entitlement check ─────────────────────────────
+        // description (business bio) is an enhanced_profile feature — Plus/legacy only
+        if (description !== undefined) {
+          const { data: bizForPlan } = await supabase.from("businesses").select("id").eq("user_id", userId).maybeSingle();
+          if (bizForPlan?.id) {
+            const { data: applForPlan } = await supabase.from("applications").select("plan_code").eq("business_id", bizForPlan.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+            const pc = (applForPlan as any)?.plan_code ?? null;
+            const hasEnhancedProfile = pc !== "tvc_basic"; // tvc_plus + legacy get it; basic does not
+            if (!hasEnhancedProfile) { fail(res, "Business description is a TVC Plus feature. Upgrade to access this field.", 403); return; }
+          }
+        }
+        // ──────────────────────────────────────────────────────────────────
+
         const { data, error } = await supabase.from("businesses").update({
           ...(business_name !== undefined && { business_name }),
           ...(trade_type !== undefined && { trade_type }),
