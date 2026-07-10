@@ -148,6 +148,14 @@ export default function AdminApplicationDetailPage({ id }: { id?: string }) {
         setChecks(d.verification_checks ?? []);
         setNotes(d.admin_notes ?? []);
         if (d.businesses?.via_number) setViaInput(d.businesses.via_number);
+        try {
+          const raw = localStorage.getItem("admin_viewed_applications");
+          const viewed: string[] = raw ? JSON.parse(raw) : [];
+          if (!viewed.includes(id)) {
+            viewed.push(id);
+            localStorage.setItem("admin_viewed_applications", JSON.stringify(viewed));
+          }
+        } catch { /* storage unavailable */ }
       })
       .catch(() => {})
       .finally(() => setLoading(false));

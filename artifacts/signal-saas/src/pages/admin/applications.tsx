@@ -58,10 +58,20 @@ function timeAgo(iso: string) {
   return `${d}d ago`;
 }
 
+function getViewedIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem("admin_viewed_applications");
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
 export default function AdminApplicationsPage() {
   const [apps, setApps]     = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewedIds, setViewedIds] = useState<Set<string>>(getViewedIds);
   const token = sessionStorage.getItem("admin_token") || "";
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -75,7 +85,10 @@ export default function AdminApplicationsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(statusFilter); }, [statusFilter]);
+  useEffect(() => {
+    load(statusFilter);
+    setViewedIds(getViewedIds());
+  }, [statusFilter]);
 
   const counts: Record<string, number> = {};
   apps.forEach((a) => { counts[a.status] = (counts[a.status] ?? 0) + 1; });
@@ -140,16 +153,24 @@ export default function AdminApplicationsPage() {
                 {apps.map((app) => {
                   const biz = app.businesses;
                   const statusCls = STATUS_STYLE[app.status] ?? STATUS_STYLE.expired;
+                  const isNew = !viewedIds.has(app.id);
                   return (
                     <tr
                       key={app.id}
-                      className="hover:bg-accent/20 transition-colors cursor-pointer"
+                      className={`hover:bg-accent/20 transition-colors cursor-pointer ${isNew ? "" : "opacity-60"}`}
                       onClick={() => { window.location.href = `${BASE_URL}/admin/applications/${app.id}`; }}
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <div>
-                            <p className="font-medium">{biz?.business_name ?? "—"}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className={isNew ? "font-semibold" : "font-medium"}>{biz?.business_name ?? "—"}</p>
+                              {isNew && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 leading-none">
+                                  NEW
+                                </span>
+                              )}
+                            </div>
                             {biz?.via_number && (
                               <p className="text-xs text-primary font-mono">{biz.via_number}</p>
                             )}
