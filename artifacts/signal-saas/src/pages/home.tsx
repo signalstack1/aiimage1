@@ -81,7 +81,7 @@ export default function HomePage() {
           <div className="flex flex-col items-center">
             <TVCLogo size={131} />
             <span className="text-xs font-semibold tracking-wide whitespace-nowrap mt-1">
-              Trades <span className="text-emerald-400">|</span> Verified <span className="text-emerald-400">|</span> Checked
+              Trades <span style={{ color: "hsl(142, 71%, 45%)" }}>|</span> Verified <span style={{ color: "hsl(142, 71%, 45%)" }}>|</span> Checked
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
