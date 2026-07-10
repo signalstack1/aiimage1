@@ -672,19 +672,30 @@ router.patch("/admin/businesses/:id/link-user", requireAdmin, async (req, res) =
     const users: any[] = (listData as any)?.users ?? [];
     const user = users.find((u: any) => u.email === email);
     if (!user) return err(res, `No Supabase Auth user found with email: ${email}`, 404);
+    // Fetch current user_id before updating so we can detect a first-time link
+    const { data: existing, error: fetchErr } = await supabase
+      .from("businesses")
+      .select("user_id")
+      .eq("id", id)
+      .single();
+    if (fetchErr) throw fetchErr;
+    const isFirstLink = !existing?.user_id;
+
     const { error } = await supabase.from("businesses").update({ user_id: user.id }).eq("id", id);
     if (error) throw error;
 
-    // Send a welcome notification to the member (best-effort, non-fatal)
-    try {
-      await supabase.from("notifications").insert({
-        business_id: id,
-        recipient_type: "member",
-        title: "Your account is ready",
-        body: "Your account is ready — log in to view your dashboard.",
-      });
-    } catch (notifErr: any) {
-      logger.warn({ err: notifErr }, "Failed to insert welcome notification after link-user");
+    // Only send the welcome notification on the first-time link (no user_id → user_id)
+    if (isFirstLink) {
+      try {
+        await supabase.from("notifications").insert({
+          business_id: id,
+          recipient_type: "member",
+          title: "Your account is ready",
+          body: "Your account is ready — log in to view your dashboard.",
+        });
+      } catch (notifErr: any) {
+        logger.warn({ err: notifErr }, "Failed to insert welcome notification after link-user");
+      }
     }
 
     return ok(res, { ok: true, linked: true, user_id: user.id });
