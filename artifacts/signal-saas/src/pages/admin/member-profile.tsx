@@ -44,11 +44,10 @@ interface Profile {
   location: string;
   website: string | null;
   contact_phone: string | null;
-  contact_email: string | null;
   description: string | null;
   via_number: string | null;
   user_id: string | null;
-  application: { id: string; status: string; created_at: string } | null;
+  application: { id: string; status: string; applicant_email: string | null; created_at: string } | null;
   documents: Array<{ id: string; document_type: string; file_name: string; created_at: string }>;
   verification_checks: Array<{ check_type: string; passed: boolean }>;
 }
@@ -182,10 +181,10 @@ export default function MemberProfilePage() {
                     <span>{profile.contact_phone}</span>
                   </div>
                 )}
-                {profile.contact_email && (
+                {profile.application?.applicant_email && (
                   <div className="flex items-start gap-2 text-muted-foreground">
                     <Mail className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span className="break-all">{profile.contact_email}</span>
+                    <span className="break-all">{profile.application.applicant_email}</span>
                   </div>
                 )}
                 {profile.website && (

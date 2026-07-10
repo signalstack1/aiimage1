@@ -425,7 +425,7 @@ export default async function handler(req: any, res: any) {
           .eq("id",g2).single();
         if (bizErr || !biz) { fail(res, "Not found", 404); return; }
         const [{ data: apps }, { data: docs }, { data: checks }] = await Promise.all([
-          supabase.from("applications").select("id,status,created_at").eq("business_id",g2).order("created_at",{ascending:false}).limit(1),
+          supabase.from("applications").select("id,status,applicant_email,created_at").eq("business_id",g2).order("created_at",{ascending:false}).limit(1),
           supabase.from("documents").select("id,document_type,file_name,created_at").eq("business_id",g2).order("created_at",{ascending:false}),
           supabase.from("verification_checks").select("check_type,passed").eq("business_id",g2),
         ]);

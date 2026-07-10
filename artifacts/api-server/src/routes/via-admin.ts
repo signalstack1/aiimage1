@@ -599,13 +599,13 @@ router.get("/admin/members/:id", requireAdmin, async (req, res) => {
   try {
     const { data: biz, error: bizErr } = await supabase
       .from("businesses")
-      .select("id, business_name, trade_type, location, website, contact_phone, contact_email, description, via_number, user_id, created_at")
+      .select("id, business_name, trade_type, location, website, contact_phone, description, via_number, user_id, created_at")
       .eq("id", id)
       .single();
     if (bizErr || !biz) return err(res, bizErr?.message ?? "Not found", 404);
 
     const [{ data: apps }, { data: docs }, { data: checks }] = await Promise.all([
-      supabase.from("applications").select("id, status, created_at").eq("business_id", id).order("created_at", { ascending: false }).limit(1),
+      supabase.from("applications").select("id, status, applicant_email, created_at").eq("business_id", id).order("created_at", { ascending: false }).limit(1),
       supabase.from("documents").select("id, document_type, file_name, created_at").eq("business_id", id).order("created_at", { ascending: false }),
       supabase.from("verification_checks").select("check_type, passed").eq("business_id", id),
     ]);
