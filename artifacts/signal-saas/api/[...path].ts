@@ -987,6 +987,8 @@ export default async function handler(req: any, res: any) {
         if (!configured) { ok(res, { id:g2, description: description ?? null }); return; }
         const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
         if (!biz) { fail(res, "Business not found", 404); return; }
+        const { data: aplPatch } = await supabase.from("applications").select("plan_code").eq("business_id",(biz as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+        if (!getPlanEntitlements((aplPatch as any)?.plan_code ?? null).portfolio_access) { fail(res, "Portfolio is a TVC Plus feature.", 403); return; }
         const desc = description ? String(description).replace(/<[^>]*>/g,"").slice(0,300) : null;
         const { data: pImg, error: pErr } = await supabase.from("portfolio_images")
           .update({ description: desc })
@@ -1002,6 +1004,8 @@ export default async function handler(req: any, res: any) {
         if (!configured) { ok(res, { deleted: true }); return; }
         const { data: biz } = await supabase.from("businesses").select("id").eq("user_id",userId).single();
         if (!biz) { fail(res, "Business not found", 404); return; }
+        const { data: aplDel } = await supabase.from("applications").select("plan_code").eq("business_id",(biz as any).id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+        if (!getPlanEntitlements((aplDel as any)?.plan_code ?? null).portfolio_access) { fail(res, "Portfolio is a TVC Plus feature.", 403); return; }
         const { data: img } = await supabase.from("portfolio_images").select("storage_path,public_url").eq("id",g2).eq("business_id",(biz as any).id).maybeSingle();
         if (!img || !(img as any).public_url) { fail(res, "Image not found", 404); return; }
         if ((img as any).storage_path) await supabase.storage.from(PORTFOLIO_BUCKET).remove([(img as any).storage_path]).catch(() => {});

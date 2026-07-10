@@ -88,10 +88,11 @@ function CheckRow({ checkType, status }: { checkType: string; status: Verificati
 
 // ── Testimonial submission form (shown on approved profiles) ───────────────────
 function TestimonialForm({ viaNumber }: { viaNumber: string }) {
-  const [name, setName]       = useState("");
-  const [text, setText]       = useState("");
-  const [email, setEmail]     = useState("");
-  const [service, setService] = useState("");
+  const [name, setName]         = useState("");
+  const [text, setText]         = useState("");
+  const [email, setEmail]       = useState("");
+  const [service, setService]   = useState("");
+  const [workDate, setWorkDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent]       = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -110,6 +111,7 @@ function TestimonialForm({ viaNumber }: { viaNumber: string }) {
           testimonial_text: text.trim(),
           customer_email: email.trim() || undefined,
           service_received: service.trim() || undefined,
+          work_date: workDate || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -192,6 +194,16 @@ function TestimonialForm({ viaNumber }: { viaNumber: string }) {
               onChange={(e) => setService(e.target.value)}
               placeholder="e.g. Boiler installation"
               maxLength={200}
+              className="bg-muted border-border"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Date of work <span className="text-muted-foreground font-normal">(optional)</span></label>
+            <Input
+              type="date"
+              value={workDate}
+              onChange={(e) => setWorkDate(e.target.value)}
+              max={new Date().toISOString().split("T")[0]}
               className="bg-muted border-border"
             />
           </div>

@@ -520,3 +520,31 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
   VALUES ('portfolio-images', 'portfolio-images', true, 10485760,
           ARRAY['image/jpeg','image/png','image/webp','image/jpg'])
   ON CONFLICT (id) DO NOTHING;
+
+-- Storage object RLS for portfolio-images
+-- All writes/deletes go through the server-side service_role key (bypasses RLS).
+-- These policies make the security intent explicit and prevent direct client writes.
+
+-- Anyone can read portfolio images (they are publicly displayed on member profiles)
+DROP POLICY IF EXISTS "portfolio_images_public_read" ON storage.objects;
+CREATE POLICY "portfolio_images_public_read" ON storage.objects
+  FOR SELECT
+  USING (bucket_id = 'portfolio-images');
+
+-- No direct client-side inserts (all uploads go through the API with service_role)
+DROP POLICY IF EXISTS "portfolio_images_no_direct_insert" ON storage.objects;
+CREATE POLICY "portfolio_images_no_direct_insert" ON storage.objects
+  FOR INSERT
+  WITH CHECK (false);
+
+-- No direct client-side deletes (all deletes go through the API with service_role)
+DROP POLICY IF EXISTS "portfolio_images_no_direct_delete" ON storage.objects;
+CREATE POLICY "portfolio_images_no_direct_delete" ON storage.objects
+  FOR DELETE
+  USING (false);
+
+-- No direct client-side updates
+DROP POLICY IF EXISTS "portfolio_images_no_direct_update" ON storage.objects;
+CREATE POLICY "portfolio_images_no_direct_update" ON storage.objects
+  FOR UPDATE
+  USING (false);

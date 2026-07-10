@@ -665,6 +665,8 @@ router.patch("/member/portfolio/:id", requireMember, async (req: AuthedRequest, 
   try {
     const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
     if (!biz) return err(res, "Business not found", 404);
+    const { data: aplPatch } = await supabase.from("applications").select("plan_code").eq("business_id", biz.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!getPlanEntitlements((aplPatch as any)?.plan_code ?? null).portfolio_access) return err(res, "Portfolio is a TVC Plus feature.", 403);
     const { description } = req.body ?? {};
     const desc = description ? String(description).replace(/<[^>]*>/g,"").slice(0, 300) : null;
     const { data, error } = await supabase.from("portfolio_images")
@@ -693,6 +695,8 @@ router.delete("/member/portfolio/:id", requireMember, async (req: AuthedRequest,
   try {
     const { data: biz } = await supabase.from("businesses").select("id").eq("user_id", req.userId!).single();
     if (!biz) return err(res, "Business not found", 404);
+    const { data: aplDel } = await supabase.from("applications").select("plan_code").eq("business_id", biz.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!getPlanEntitlements((aplDel as any)?.plan_code ?? null).portfolio_access) return err(res, "Portfolio is a TVC Plus feature.", 403);
 
     const { data: img } = await supabase.from("portfolio_images")
       .select("storage_path, public_url")
