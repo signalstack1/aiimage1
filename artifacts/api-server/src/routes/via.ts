@@ -102,11 +102,11 @@ router.post("/via/apply", async (req, res) => {
   }
 
   try {
-    // 1. Create Supabase auth user (does NOT require email confirmation to log in)
+    // 1. Create Supabase auth user (auto-confirmed — TVC manually vets members)
     const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
       email: (email as string).trim().toLowerCase(),
       password: password as string,
-      email_confirm: false,
+      email_confirm: true,
     });
     if (authErr) {
       if ((authErr as any).status === 422 || authErr.message?.toLowerCase().includes("already")) {
